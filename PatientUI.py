@@ -1,3 +1,5 @@
+import logging
+
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (QWidget, QLineEdit, QPushButton, QVBoxLayout, QLabel, QMessageBox,
                              QTextEdit, QTabWidget, QFormLayout)
@@ -50,18 +52,22 @@ class PatientInterface(QWidget):
 
         # Text area for medical history
 
+        try:
+            conn = self.connect_to_database()
+            cursor = conn.cursor()
+            cursor.execute("SELECT details FROM medical_history WHERE user_id = %s", (2,))
 
-        # conn = self.connect_to_database()
-        # cursor = conn.cursor()
-        # cursor.execute("SELECT id FROM medical_history WHERE user_id = %s", (2))
-        # xd = cursor.fetchone()
-        # print()
-        # conn.commit()
-        # cursor.close()
-        # conn.close()
+            # cursor.execute("SELECT id FROM medical_history WHERE user_id = %s", (2))
+            xd = cursor.fetchone()
+            print()
+            conn.commit()
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            logging.exception(e)
 
 
-        self.medical_history_text = QTextEdit("co to je wtf omg")
+        self.medical_history_text = QTextEdit(xd[0])
         layout.addWidget(self.medical_history_text)
 
         # Button to update medical history

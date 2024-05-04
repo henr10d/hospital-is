@@ -86,28 +86,6 @@ class HospitalApp(QWidget):
             database="HospitalApp"
         )
 
-
-    # def login(self):
-    #     name = self.name_input.text()
-    #     password = self.password_input.text()
-    #     role = self.role_input.currentText().lower()
-    #     with open("users.txt", "r") as file:
-    #         for line in file:
-    #             reg_name, reg_pass, reg_role = line.strip().split(',')
-    #             if reg_name == name and reg_pass == password and reg_role == role:
-    #                 QMessageBox.information(self, 'Login Success', f'Welcome {role} {name}!')
-    #                 self.open_role_interface(role)
-    #                 return
-    #         QMessageBox.warning(self, 'Login Failed', 'Invalid credentials or role!')
-    #
-    # def register(self):
-    #     name = self.name_input.text()
-    #     password = self.password_input.text()
-    #     role = self.role_input.currentText().lower()
-    #     with open("users.txt", "a") as file:
-    #         file.write(f"{name},{password},{role}\n")
-    #     QMessageBox.information(self, 'Register Success', 'You are registered successfully!')
-
     def open_role_interface(self, role):
         self.hide()
         if role == "doctor":
