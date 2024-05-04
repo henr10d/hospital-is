@@ -33,18 +33,44 @@ class PatientInterface(QWidget):
     def createPersonalInfoPage(self):
         widget = QWidget()
         formLayout = QFormLayout()
-        name_edit = QLineEdit()
-        age_edit = QLineEdit()
-        formLayout.addRow("Name:", name_edit)
-        formLayout.addRow("Age:", age_edit)
-        # Example of adding a picture
-        pixmap = QPixmap(100, 100)
-        pixmap.fill()
-        picture_label = QLabel()
-        picture_label.setPixmap(pixmap)
-        formLayout.addRow("Picture:", picture_label)
+        self.name_edit = QLineEdit()  # Making it an instance variable to access in other methods
+        self.age_edit = QLineEdit()
+        formLayout.addRow("Name:", self.name_edit)
+        formLayout.addRow("Age:", self.age_edit)
+
+        # Buttons to update name and age
+        self.update_name_btn = QPushButton('Change Name')
+        formLayout.addRow(self.update_name_btn)
+
+        # Connect buttons to their functions
+        self.update_name_btn.clicked.connect(self.update_name)
+
+        self.picture_label = QLabel()
+        self.load_picture_btn = QPushButton('Add/Change Picture')
+        formLayout.addRow("Picture:", self.picture_label)
+        formLayout.addRow(self.load_picture_btn)
+        self.load_picture_btn.clicked.connect(self.add_picture)
+
         widget.setLayout(formLayout)
         return widget
+
+    def update_name(self):
+        new_name = self.name_edit.text()
+        # Here you can add code to update the name in the database
+        QMessageBox.information(self, 'Name Changed', 'Your name has been updated successfully!')
+
+    def update_age(self):
+        new_age = self.age_edit.text()
+        # Here you can add code to update the age in the database
+        QMessageBox.information(self, 'Age Changed', 'Your age has been updated successfully!')
+
+    def add_picture(self):
+        file_name, _ = QFileDialog.getOpenFileName(self, "Select Picture", "", "Image Files (*.png *.jpg *.jpeg *.bmp)")
+        if file_name:
+            pixmap = QPixmap(file_name)
+            self.picture_label.setPixmap(pixmap.scaled(100, 100, aspectRatioMode=Qt.KeepAspectRatio))
+            # Here you can add code to update the picture path in the database
+            QMessageBox.information(self, 'Picture Updated', 'Your picture has been updated successfully!')
 
     def createMedicalHistoryPage(self):
         widget = QWidget()
@@ -56,8 +82,6 @@ class PatientInterface(QWidget):
             conn = self.connect_to_database()
             cursor = conn.cursor()
             cursor.execute("SELECT details FROM medical_history WHERE user_id = %s", (2,))
-
-            # cursor.execute("SELECT id FROM medical_history WHERE user_id = %s", (2))
             xd = cursor.fetchone()
             print()
             conn.commit()
@@ -79,27 +103,27 @@ class PatientInterface(QWidget):
         return widget
 
     def update_medical_history(self):
-        print("xd")
         # Assuming user_id is accessible as self.user_id
         new_history = self.medical_history_text.toPlainText()
         conn = self.connect_to_database()
         cursor = conn.cursor()
-        # cursor.execute("INSERT INTO users (name, password, role) VALUES (%s, %s, %s)", (name, password, role))
-        cursor.execute("INSERT into medical_history values(%s,%s,%s)", (new_history, self.user_id))
+        # Check if the user already has a medical history entry
+        cursor.execute("SELECT * FROM medical_history WHERE user_id = %s", (2,))
+        result = cursor.fetchone()
+        print(result)
+        if result:
+            # Update the existing medical history record
+            cursor.execute("UPDATE medical_history SET details = %s WHERE user_id = %s", (new_history, 2))
+        else:
+            # Insert new record if none exists
+            cursor.execute("INSERT INTO medical_history (details, user_id) VALUES (%s, %s)",
+                           (new_history, self.user_id))
 
-        # cursor.execute("INSERT or UPDATE medical_history SET details = %s WHERE user_id = %s", (new_history, self.user_id))
         conn.commit()
         cursor.close()
         conn.close()
         QMessageBox.information(self, 'Update Successful', 'Your medical history has been updated!')
 
-    # def createMedicalHistoryPage(self):
-    #     widget = QWidget()
-    #     layout = QVBoxLayout()
-    #     medical_history = QTextEdit("No medical history available.")
-    #     layout.addWidget(medical_history)
-    #     widget.setLayout(layout)
-    #     return widget
 
     def createAppointmentPage(self):
         widget = QWidget()
