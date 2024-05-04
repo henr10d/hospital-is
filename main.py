@@ -267,7 +267,7 @@ class PatientInterface(QWidget):
         conn.close()
         QMessageBox.information(self, 'Appointment Added', 'Your appointment has been added successfully!')
 
-
+    # test
     # def createAppointmentPage(self):
     #     widget = QWidget()
     #     layout = QVBoxLayout()
