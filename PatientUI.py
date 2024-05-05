@@ -1,5 +1,3 @@
-import logging
-
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (QWidget, QLineEdit, QPushButton, QVBoxLayout, QLabel, QMessageBox,
                              QTextEdit, QTabWidget, QFormLayout)
@@ -14,14 +12,6 @@ class PatientInterface(QWidget):
         self.setWindowTitle('Patient Dashboard')
         self.setGeometry(400, 400, 1280, 800)
         self.initUI()
-
-    def connect_to_database(self):
-        return mysql.connector.connect(
-            host="localhost",  # Or the relevant host where your MySQL server is running
-            user="root",  # Replace with your MySQL user
-            password="1234",  # Replace with your MySQL password
-            database="HospitalApp"
-        )
 
     def initUI(self):
         self.tabWidget = QTabWidget()

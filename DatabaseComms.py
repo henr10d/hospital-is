@@ -91,7 +91,7 @@ class DatabaseCommunicator:
         statement = "SELECT id FROM users WHERE name = %s AND password = %s AND role = %s"
         result = self.database_query(statement, params, False)
         if result:
-            return result[0]
+            return result[0][0]
         return None
 
     def add_user_to_database(self, params):
@@ -111,7 +111,7 @@ class DatabaseCommunicator:
         no medical history
         """
         statement = "SELECT details FROM medical_history WHERE user_id = %s"
-        result = self.database_query(statement, user_id, False)
+        result = self.database_query(statement, (user_id, ), False)
         if result:
             return result[0]
         return None
