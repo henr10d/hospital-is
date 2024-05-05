@@ -4,15 +4,16 @@ from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (QWidget, QLineEdit, QPushButton, QVBoxLayout, QLabel, QMessageBox,
                              QTextEdit, QTabWidget, QFormLayout)
 import mysql.connector
-from DoctorUI import DoctorInterface
+from DatabaseComms import DatabaseCommunicator
 
 class PatientInterface(QWidget):
-    def __init__(self, user_id):
+    def __init__(self, user_id, database: DatabaseCommunicator):
+        self.user_id = user_id
+        self.database = database
         super().__init__()
         self.setWindowTitle('Patient Dashboard')
         self.setGeometry(400, 400, 1280, 800)
         self.initUI()
-        self.user_id = user_id
 
     def connect_to_database(self):
         return mysql.connector.connect(
@@ -79,20 +80,9 @@ class PatientInterface(QWidget):
 
         # Text area for medical history
 
-        try:
-            conn = self.connect_to_database()
-            cursor = conn.cursor()
-            cursor.execute("SELECT details FROM medical_history WHERE user_id = %s", (2,))
-            xd = cursor.fetchone()
-            print()
-            conn.commit()
-            cursor.close()
-            conn.close()
-        except Exception as e:
-            logging.exception(e)
-
-        if (xd):
-            self.medical_history_text = QTextEdit(xd[0])
+        record = self.database.fetch_medical_record(self.user_id)
+        if (record):
+            self.medical_history_text = QTextEdit(record[0])
         else:
             self.medical_history_text = QTextEdit("")
         layout.addWidget(self.medical_history_text)
@@ -106,25 +96,13 @@ class PatientInterface(QWidget):
         return widget
 
     def update_medical_history(self):
-        # Assuming user_id is accessible as self.user_id
         new_history = self.medical_history_text.toPlainText()
-        conn = self.connect_to_database()
-        cursor = conn.cursor()
-        # Check if the user already has a medical history entry
-        cursor.execute("SELECT * FROM medical_history WHERE user_id = %s", (2,))
-        result = cursor.fetchone()
-        print(result)
+        result = self.database.fetch_medical_record(self.user_id)
         if result:
-            # Update the existing medical history record
-            cursor.execute("UPDATE medical_history SET details = %s WHERE user_id = %s", (new_history, 2))
+            self.database.update_medical_record((new_history, self.user_id))
         else:
-            # Insert new record if none exists
-            cursor.execute("INSERT INTO medical_history (details, user_id) VALUES (%s, %s)",
-                           (new_history, self.user_id))
+            self.database.insert_medical_record((new_history, self.user_id))
 
-        conn.commit()
-        cursor.close()
-        conn.close()
         QMessageBox.information(self, 'Update Successful', 'Your medical history has been updated!')
 
 
@@ -149,28 +127,5 @@ class PatientInterface(QWidget):
         appointment_details = self.appointment_info.toPlainText()
         appointment_time = ...  # You need to define a way to get this, possibly from another input field
 
-        conn = self.connect_to_database()
-        cursor = conn.cursor()
-        cursor.execute("INSERT INTO appointments (user_id, appointment_details, appointment_time) VALUES (%s, %s, %s)",
-                       (self.user_id, appointment_details, appointment_time))
-        conn.commit()
-        cursor.close()
-        conn.close()
+        self.database.add_appointment((self.user_id, appointment_details, appointment_time))
         QMessageBox.information(self, 'Appointment Added', 'Your appointment has been added successfully!')
-
-    # test
-    # def createAppointmentPage(self):
-    #     widget = QWidget()
-    #     layout = QVBoxLayout()
-    #     appointment_info = QTextEdit("No appointments set.")
-    #     layout.addWidget(appointment_info)
-    #     widget.setLayout(layout)
-    #     return widget
-
-    def open_role_interface(self, role):
-        self.hide()
-        if role == "doctor":
-            self.interface = DoctorInterface()
-        elif role == "patient":
-            self.interface = PatientInterface()
-        self.interface.showFullScreen()  # Changed from show() to showFullScreen()

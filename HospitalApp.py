@@ -2,17 +2,24 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 import sys
 # import MySQLdb
 from hashlib import sha256
-import mysql.connector
 from PyQt5.QtWidgets import QMessageBox
 
 from DoctorUI import DoctorInterface
 from PatientUI import PatientInterface
+from DatabaseComms import DatabaseCommunicator
 class HospitalApp(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.setup_ui()
         self.setWindowTitle("Login / Register")
         self.resize(400, 300)
+        self.database = DatabaseCommunicator(
+            "localhost",
+            "root",
+            "1234",
+            "HospitalApp"
+        )
+        self.database.connect()
 
     def resizeEvent(self, event):
         # Dynamically adjust font size based on window size
@@ -157,52 +164,27 @@ class HospitalApp(QtWidgets.QWidget):
     def show_login_form(self):
         self.stack.setCurrentIndex(0)
 
-    def connect_to_database(self):
-        try:
-            conn = mysql.connector.connect(
-            host="localhost",  # Or the relevant host where your MySQL server is running
-            user="root",  # Replace with your MySQL user
-            password="1234",  # Replace with your MySQL password
-            database="HospitalApp"
-            )
-            return conn
-        except Exception as e:
-            QtWidgets.QMessageBox.critical(self, 'Database Connection Error', str(e))
-            return None
-
     def open_role_interface(self, user_id):
         self.hide()
         if self.role_input.currentText().lower() == "doctor":
-            self.interface = DoctorInterface(user_id)
+            self.interface = DoctorInterface(user_id, self.database)
         elif self.role_input.currentText().lower() == "patient":
-            self.interface = PatientInterface(user_id)
+            self.interface = PatientInterface(user_id, self.database)
         self.interface.show()
 
     def login(self):
         name = self.username_input.text()
         password = self.password_input.text()
         role = self.role_input.currentText().lower()
-        conn = self.connect_to_database()
-        cursor = conn.cursor()
-        cursor.execute("SELECT id FROM users WHERE name = %s AND password = %s AND role = %s", (name, password, role))
-        result = cursor.fetchone()
+        result = self.database.get_user_id((name, password, role))
         if result:
             QMessageBox.information(self, 'Login Success', f'Welcome {role} {name}!')
             self.open_role_interface(result)
         else:
             QMessageBox.warning(self, 'Login Failed', 'Invalid credentials or role!')
-        cursor.close()
-        conn.close()
 
     def register(self):
         name = self.name_input.text()
         password = sha256(self.new_password_input.text().encode()).hexdigest()  # Hash the password
         role = self.new_role_input.currentText().lower()
-        conn = self.connect_to_database()
-        if conn:
-            cursor = conn.cursor()
-            cursor.execute("INSERT INTO users (name, password, role) VALUES (%s, %s, %s)", (name, password, role))
-            conn.commit()
-            cursor.close()
-            conn.close()
-            QtWidgets.QMessageBox.information(self, 'Register Success', 'You are registered successfully!')
+        self.database.add_user_to_database((name, password, role))

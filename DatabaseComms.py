@@ -59,19 +59,24 @@ class DatabaseCommunicator:
             self.connection.close()
             self.connection = None
 
-    def database_query(self, statement, params):
+    def database_query(self, statement, params, update):
         """
         Method that safely sends query to the database and returns the result
         :param statement: query to be sent to the database
         :param params: tuple with parameters for the query
+        :param update: boolean indicating whether the flushing of the database is needed
         :return: List of tuples with data representing the result of the query
         """
         cursor = None
         try:
             cursor = self.connection.cursor()
             cursor.execute(statement, params)
+            if update:
+                self.connection.commit()
             return cursor.fetchall()
         except mysql.connector.Error as err:
+            if update:
+                self.connection.rollback()
             self.handle_exception(err)
         finally:
             if cursor is not None:
@@ -84,7 +89,7 @@ class DatabaseCommunicator:
         :return: user_id or None if there is no such user_id in the database
         """
         statement = "SELECT id FROM users WHERE name = %s AND password = %s AND role = %s"
-        result = self.database_query(statement, params)
+        result = self.database_query(statement, params, False)
         if result:
             return result[0]
         return None
@@ -96,7 +101,7 @@ class DatabaseCommunicator:
         :return: None
         """
         statement = "INSERT INTO users (name, password, role) VALUES (%s, %s, %s)"
-        self.database_query(statement, params)
+        self.database_query(statement, params, True)
 
     def fetch_medical_record(self, user_id):
         """
@@ -106,7 +111,7 @@ class DatabaseCommunicator:
         no medical history
         """
         statement = "SELECT details FROM medical_history WHERE user_id = %s"
-        result = self.database_query(statement, user_id)
+        result = self.database_query(statement, user_id, False)
         if result:
             return result[0]
         return None
@@ -118,7 +123,7 @@ class DatabaseCommunicator:
         :return: None
         """
         statement = "UPDATE medical_history SET details = %s WHERE user_id = %s"
-        self.database_query(statement, params)
+        self.database_query(statement, params, True)
 
     def insert_medical_record(self, params):
         """
@@ -127,4 +132,14 @@ class DatabaseCommunicator:
         :return: None
         """
         statement = "INSERT INTO medical_history (details, user_id) VALUES (%s, %s)"
-        self.database_query(statement, params)
+        self.database_query(statement, params, True)
+
+    def add_appointment(self, params):
+        """
+        Method for adding an appointment with a doctor
+        :param params: parameters of the appointment
+        :return: None
+        """
+        statement = ("INSERT INTO appointments (user_id, appointment_details,"
+                     " appointment_time) VALUES (%s, %s, %s)")
+        self.database_query(statement, params, True)
