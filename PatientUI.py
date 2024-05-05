@@ -7,17 +7,18 @@ import mysql.connector
 from DoctorUI import DoctorInterface
 
 class PatientInterface(QWidget):
-    def __init__(self):
+    def __init__(self, user_id):
         super().__init__()
         self.setWindowTitle('Patient Dashboard')
         self.setGeometry(400, 400, 1280, 800)
         self.initUI()
+        self.user_id = user_id
 
     def connect_to_database(self):
         return mysql.connector.connect(
             host="localhost",  # Or the relevant host where your MySQL server is running
             user="root",  # Replace with your MySQL user
-            password="filip",  # Replace with your MySQL password
+            password="1234",  # Replace with your MySQL password
             database="HospitalApp"
         )
 
@@ -90,8 +91,10 @@ class PatientInterface(QWidget):
         except Exception as e:
             logging.exception(e)
 
-
-        self.medical_history_text = QTextEdit(xd[0])
+        if (xd):
+            self.medical_history_text = QTextEdit(xd[0])
+        else:
+            self.medical_history_text = QTextEdit("")
         layout.addWidget(self.medical_history_text)
 
         # Button to update medical history

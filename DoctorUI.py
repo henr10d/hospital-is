@@ -1,11 +1,12 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTextEdit)
 
 class DoctorInterface(QWidget):
-    def __init__(self):
+    def __init__(self, user_id):
         super().__init__()
         self.setWindowTitle('Doctor Dashboard')
         self.setGeometry(400, 400, 1280, 800)
         self.initUI()
+        self.user_id = user_id
 
     def initUI(self):
         layout = QVBoxLayout(self)

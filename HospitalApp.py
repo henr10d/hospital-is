@@ -162,7 +162,7 @@ class HospitalApp(QtWidgets.QWidget):
             conn = mysql.connector.connect(
             host="localhost",  # Or the relevant host where your MySQL server is running
             user="root",  # Replace with your MySQL user
-            password="filip",  # Replace with your MySQL password
+            password="1234",  # Replace with your MySQL password
             database="HospitalApp"
             )
             return conn
@@ -170,12 +170,12 @@ class HospitalApp(QtWidgets.QWidget):
             QtWidgets.QMessageBox.critical(self, 'Database Connection Error', str(e))
             return None
 
-    def open_role_interface(self, role):
+    def open_role_interface(self, user_id):
         self.hide()
         if self.role_input.currentText().lower() == "doctor":
-            self.interface = DoctorInterface()
+            self.interface = DoctorInterface(user_id)
         elif self.role_input.currentText().lower() == "patient":
-            self.interface = PatientInterface()
+            self.interface = PatientInterface(user_id)
         self.interface.show()
 
     def login(self):
@@ -188,7 +188,7 @@ class HospitalApp(QtWidgets.QWidget):
         result = cursor.fetchone()
         if result:
             QMessageBox.information(self, 'Login Success', f'Welcome {role} {name}!')
-            self.open_role_interface(role)
+            self.open_role_interface(result)
         else:
             QMessageBox.warning(self, 'Login Failed', 'Invalid credentials or role!')
         cursor.close()
