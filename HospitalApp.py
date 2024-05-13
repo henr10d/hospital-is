@@ -1,130 +1,190 @@
-from PyQt5.QtWidgets import (QWidget, QLineEdit, QPushButton, QVBoxLayout, QMessageBox,
-                             QHBoxLayout, QComboBox, QFormLayout)
-from PyQt5.QtGui import QFont
+from PyQt5 import QtWidgets, QtCore, QtGui
+import sys
+# import MySQLdb
+from hashlib import sha256
+from PyQt5.QtWidgets import QMessageBox
+
 from DoctorUI import DoctorInterface
 from PatientUI import PatientInterface
-
-import mysql.connector
-
-class HospitalApp(QWidget):
+from DatabaseComms import DatabaseCommunicator
+class HospitalApp(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle('Hospital App')
-        self.setGeometry(400, 400, 1280, 800)
-        self.initUI()
+        self.setup_ui()
+        self.setWindowTitle("Login / Register")
+        self.resize(400, 300)
+        self.database = DatabaseCommunicator(
+            "localhost",
+            "root",
+            "1234",
+            "HospitalApp"
+        )
+        self.database.connect()
 
-    def initUI(self):
-        # Main layout
-        self.layout = QVBoxLayout(self)
+    def resizeEvent(self, event):
+        # Dynamically adjust font size based on window size
+        new_font_size = max(12, min(24, self.width() // 30))
+        font = QtGui.QFont("Arial", new_font_size)
 
-        # Credentials layout
-        self.credentials_layout = QFormLayout()
-        self.name_input = QLineEdit()
-        self.password_input = QLineEdit()
-        self.password_input.setEchoMode(QLineEdit.Password)
-        self.role_input = QComboBox()
-        self.role_input.addItems(["Doctor", "Patient"])
-        self.credentials_layout.addRow("Name:", self.name_input)
-        self.credentials_layout.addRow("Password:", self.password_input)
-        self.credentials_layout.addRow("Role:", self.role_input)
-        self.layout.addLayout(self.credentials_layout)
+        # Apply font size and size constraints to input fields and buttons
+        max_button_height = 50  # Maximum button height
+        max_text_height = 40    # Maximum text field height
+        max_width = 300         # Maximum width for buttons and text fields
 
-        # Buttons layout
-        self.buttons_layout = QHBoxLayout()
-        self.login_button = QPushButton('Login')
-        self.register_button = QPushButton('Register')
-        self.buttons_layout.addWidget(self.login_button)
-        self.buttons_layout.addWidget(self.register_button)
-        self.layout.addLayout(self.buttons_layout)
+        for widget in [self.username_input, self.password_input, self.role_input,
+                       self.name_input, self.age_input, self.new_username_input,
+                       self.new_password_input, self.new_role_input]:
+            widget.setFont(font)
+            widget.setMaximumSize(max_width, max_text_height)
 
-        # Styling buttons
-        self.styleButtons()
+        # Adjust button size dynamically with a maximum size
+        button_height = max(30, min(max_button_height, self.height() // 20))
+        for button in self.findChildren(QtWidgets.QPushButton):
+            button.setFont(font)
+            button.setMinimumHeight(button_height)
+            button.setMaximumSize(max_width, max_button_height)
 
-        # Connect buttons
-        self.login_button.clicked.connect(self.login)
-        self.register_button.clicked.connect(self.register)
+        # Ensure layout updates properly
+        super().resizeEvent(event)
 
-    def styleButtons(self):
-        self.login_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; padding: 10px; }"
-                                        "QPushButton:hover { background-color: #45a049; }")
-        self.register_button.setStyleSheet("QPushButton { background-color: #2196F3; color: white; padding: 10px; }"
-                                           "QPushButton:hover { background-color: #1976D2; }")
+    def setup_ui(self):
+        # Stack of widgets
+
+            # Stack of widgets
+        self.stack = QtWidgets.QStackedWidget(self)
+        self.stack.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+
+        # Login Form
+        self.login_form = self.create_login_form()
+        self.stack.addWidget(self.login_form)
+
+        # Registration Form
+        self.registration_form = self.create_registration_form()
+        self.stack.addWidget(self.registration_form)
+
+        # Layout
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addStretch()  # Adds a stretchable space before the stack
+        layout.addWidget(self.stack)
+        layout.addStretch()  # Adds a stretchable space after the stack
+        # Styling
+        self.setStyleSheet("""
+            QWidget {
+                font-size: 16px;
+            }
+            QLineEdit {
+                border: 2px solid #AAAAAA;
+                border-radius: 10px;
+                padding: 10px;
+                background-color: #FFFFFF;
+                color: #333333;
+            }
+            QPushButton {
+                border: 2px solid #0057D8;
+                border-radius: 10px;
+                padding: 10px;
+                background-color: #0057D8;
+                color: #FFFFFF;
+                min-height: 40px;
+            }
+            QPushButton:hover {
+                background-color: #007BFF;
+                border-color: #007BFF;
+            }
+            QPushButton:pressed {
+                background-color: #0056B3;
+                border-color: #004D99;
+            }
+        """)
+
+    def create_login_form(self):
+        form = QtWidgets.QWidget()
+        layout = QtWidgets.QVBoxLayout(form)
+        layout.setAlignment(QtCore.Qt.AlignCenter)  # Aligns all widgets in the layout to the center
+
+        self.username_input = QtWidgets.QLineEdit()
+        self.username_input.setPlaceholderText("Username")
+        self.password_input = QtWidgets.QLineEdit()
+        self.password_input.setPlaceholderText("Password")
+        self.password_input.setEchoMode(QtWidgets.QLineEdit.Password)
+        self.role_input = QtWidgets.QComboBox()
+        self.role_input.addItems(["Patient", "Doctor"])
+
+        login_btn = QtWidgets.QPushButton("Login")
+        login_btn.clicked.connect(self.login)
+
+        register_btn = QtWidgets.QPushButton("Register")
+        register_btn.clicked.connect(self.show_registration_form)
+
+        layout.addWidget(self.username_input)
+        layout.addWidget(self.password_input)
+        layout.addWidget(self.role_input)
+        layout.addWidget(login_btn)
+        layout.addWidget(register_btn)
+
+        return form
+
+    def create_registration_form(self):
+        form = QtWidgets.QWidget()
+        layout = QtWidgets.QVBoxLayout(form)
+        layout.setAlignment(QtCore.Qt.AlignCenter)
+
+        self.name_input = QtWidgets.QLineEdit()
+        self.name_input.setPlaceholderText("Full Name")
+        self.age_input = QtWidgets.QLineEdit()
+        self.age_input.setPlaceholderText("Age")
+        self.age_input.setValidator(QtGui.QIntValidator(1, 100))
+        self.new_username_input = QtWidgets.QLineEdit()
+        self.new_username_input.setPlaceholderText("Username")
+        self.new_password_input = QtWidgets.QLineEdit()
+        self.new_password_input.setPlaceholderText("Password")
+        self.new_password_input.setEchoMode(QtWidgets.QLineEdit.Password)
+        self.new_role_input = QtWidgets.QComboBox()
+        self.new_role_input.addItems(["Patient", "Doctor", "Admin"])
+
+        register_btn = QtWidgets.QPushButton("Register")
+        register_btn.clicked.connect(self.register)
+
+        back_btn = QtWidgets.QPushButton("Back to Login")
+        back_btn.clicked.connect(self.show_login_form)
+
+        layout.addWidget(self.name_input)
+        layout.addWidget(self.age_input)
+        layout.addWidget(self.new_username_input)
+        layout.addWidget(self.new_password_input)
+        layout.addWidget(self.new_role_input)
+        layout.addWidget(register_btn)
+        layout.addWidget(back_btn)
+
+        return form
+
+    def show_registration_form(self):
+        self.stack.setCurrentIndex(1)
+
+    def show_login_form(self):
+        self.stack.setCurrentIndex(0)
+
+    def open_role_interface(self, user_id):
+        self.hide()
+        if self.role_input.currentText().lower() == "doctor":
+            self.interface = DoctorInterface(user_id, self.database)
+        elif self.role_input.currentText().lower() == "patient":
+            self.interface = PatientInterface(user_id, self.database)
+        self.interface.show()
+
+    def login(self):
+        name = self.username_input.text()
+        password = self.password_input.text()
+        role = self.role_input.currentText().lower()
+        result = self.database.get_user_id((name, password, role))
+        if result:
+            QMessageBox.information(self, 'Login Success', f'Welcome {role} {name}!')
+            self.open_role_interface(result)
+        else:
+            QMessageBox.warning(self, 'Login Failed', 'Invalid credentials or role!')
 
     def register(self):
         name = self.name_input.text()
-        password = self.password_input.text()  # Consider hashing this password before storing
-        role = self.role_input.currentText().lower()
-        conn = self.connect_to_database()
-        cursor = conn.cursor()
-        cursor.execute("INSERT INTO users (name, password, role) VALUES (%s, %s, %s)", (name, password, role))
-        conn.commit()
-        cursor.close()
-        conn.close()
-        QMessageBox.information(self, 'Register Success', 'You are registered successfully!')
-
-    def login(self):
-        name = self.name_input.text()
-        password = self.password_input.text()
-        role = self.role_input.currentText().lower()
-        conn = self.connect_to_database()
-        cursor = conn.cursor()
-        cursor.execute("SELECT id FROM users WHERE name = %s AND password = %s AND role = %s", (name, password, role))
-        result = cursor.fetchone()
-        if result:
-            QMessageBox.information(self, 'Login Success', f'Welcome {role} {name}!')
-            self.open_role_interface(role)
-        else:
-            QMessageBox.warning(self, 'Login Failed', 'Invalid credentials or role!')
-        cursor.close()
-        conn.close()
-
-    def connect_to_database(self):
-        return mysql.connector.connect(
-            host="localhost",  # Or the relevant host where your MySQL server is running
-            user="root",  # Replace with your MySQL user
-            password="filip",  # Replace with your MySQL password
-            database="HospitalApp"
-        )
-
-
-    # def login(self):
-    #     name = self.name_input.text()
-    #     password = self.password_input.text()
-    #     role = self.role_input.currentText().lower()
-    #     with open("users.txt", "r") as file:
-    #         for line in file:
-    #             reg_name, reg_pass, reg_role = line.strip().split(',')
-    #             if reg_name == name and reg_pass == password and reg_role == role:
-    #                 QMessageBox.information(self, 'Login Success', f'Welcome {role} {name}!')
-    #                 self.open_role_interface(role)
-    #                 return
-    #         QMessageBox.warning(self, 'Login Failed', 'Invalid credentials or role!')
-    #
-    # def register(self):
-    #     name = self.name_input.text()
-    #     password = self.password_input.text()
-    #     role = self.role_input.currentText().lower()
-    #     with open("users.txt", "a") as file:
-    #         file.write(f"{name},{password},{role}\n")
-    #     QMessageBox.information(self, 'Register Success', 'You are registered successfully!')
-
-    def open_role_interface(self, role):
-        self.hide()
-        if role == "doctor":
-            self.interface = DoctorInterface()
-        elif role == "patient":
-            self.interface = PatientInterface()
-        self.interface.show()
-
-    def resizeEvent(self, event):
-        # Apply a more subtle scaling of font size
-        new_font_size = max(8, min(12, self.width() // 100 + self.height() // 150))
-        font = QFont("Arial", new_font_size)
-        self.applyFontChange(font)
-
-    def applyFontChange(self, font):
-        self.name_input.setFont(font)
-        self.password_input.setFont(font)
-        self.role_input.setFont(font)
-        self.login_button.setFont(font)
-        self.register_button.setFont(font)
+        password = sha256(self.new_password_input.text().encode()).hexdigest()  # Hash the password
+        role = self.new_role_input.currentText().lower()
+        self.database.add_user_to_database((name, password, role))
