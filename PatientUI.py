@@ -57,23 +57,6 @@ class PatientInterface(QWidget):
         layout = QVBoxLayout(self)
         layout.addWidget(self.tabWidget)
 
-    # def __init__(self, user_id, database: DatabaseCommunicator):
-    #     self.user_id = user_id
-    #     self.database = database
-    #     super().__init__()
-    #     self.setWindowTitle('Patient Dashboard')
-    #     self.setGeometry(400, 400, 1280, 800)
-    #     self.initUI()
-    #
-    # def initUI(self):
-    #     self.tabWidget = QTabWidget()
-    #     self.tabWidget.addTab(self.createPersonalInfoPage(), "Personal Info")
-    #     self.tabWidget.addTab(self.createMedicalHistoryPage(), "Medical History")
-    #     self.tabWidget.addTab(self.createAppointmentPage(), "Set Appointment")
-    #
-    #     layout = QVBoxLayout(self)
-    #     layout.addWidget(self.tabWidget)
-
     def createPersonalInfoPage(self):
         widget = QWidget()
         formLayout = QFormLayout()
@@ -97,30 +80,6 @@ class PatientInterface(QWidget):
         widget.setLayout(formLayout)
         return widget
 
-    # def createPersonalInfoPage(self):
-    #     widget = QWidget()
-    #     formLayout = QFormLayout()
-    #     self.name_edit = QLineEdit()  # Making it an instance variable to access in other methods
-    #     self.age_edit = QLineEdit()
-    #     formLayout.addRow("Name:", self.name_edit)
-    #     formLayout.addRow("Age:", self.age_edit)
-    #
-    #     # Buttons to update name and age
-    #     self.update_name_btn = QPushButton('Change Name')
-    #     formLayout.addRow(self.update_name_btn)
-    #
-    #     # Connect buttons to their functions
-    #     self.update_name_btn.clicked.connect(self.update_name)
-    #
-    #     self.picture_label = QLabel()
-    #     self.load_picture_btn = QPushButton('Add/Change Picture')
-    #     formLayout.addRow("Picture:", self.picture_label)
-    #     formLayout.addRow(self.load_picture_btn)
-    #     self.load_picture_btn.clicked.connect(self.add_picture)
-    #
-    #     widget.setLayout(formLayout)
-    #     return widget
-
     def update_name(self):
         new_name = self.name_edit.text()
         # Here you can add code to update the name in the database
@@ -137,14 +96,6 @@ class PatientInterface(QWidget):
             pixmap = QPixmap(file_name)
             self.picture_label.setPixmap(pixmap.scaled(100, 100, Qt.KeepAspectRatio))
             QMessageBox.information(self, 'Picture Updated', 'Your picture has been updated successfully!')
-
-    # def add_picture(self):
-    #     file_name, _ = QFileDialog.getOpenFileName(self, "Select Picture", "", "Image Files (*.png *.jpg *.jpeg *.bmp)")
-    #     if file_name:
-    #         pixmap = QPixmap(file_name)
-    #         self.picture_label.setPixmap(pixmap.scaled(100, 100, aspectRatioMode=Qt.KeepAspectRatio))
-    #         # Here you can add code to update the picture path in the database
-    #         QMessageBox.information(self, 'Picture Updated', 'Your picture has been updated successfully!')
 
     def createMedicalHistoryPage(self):
         widget = QWidget()
