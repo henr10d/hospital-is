@@ -5,15 +5,50 @@ import mysql.connector
 from DatabaseComms import DatabaseCommunicator
 
 class PatientInterface(QWidget):
+
     def __init__(self, user_id, database: DatabaseCommunicator):
+        super().__init__()
         self.user_id = user_id
         self.database = database
-        super().__init__()
-        self.setWindowTitle('Patient Dashboard')
-        self.setGeometry(400, 400, 1280, 800)
         self.initUI()
 
     def initUI(self):
+        self.setWindowTitle('Patient Dashboard')
+        self.setGeometry(400, 400, 1280, 800)
+        self.setStyleSheet("""
+            QWidget {
+                font-size: 16px;
+            }
+            QLineEdit, QTextEdit {
+                border: 2px solid #AAAAAA;
+                border-radius: 10px;
+                padding: 10px;
+                background-color: #FFFFFF;
+                color: #333333;
+            }
+            QPushButton {
+                border: 2px solid #0057D8;
+                border-radius: 10px;
+                padding: 10px;
+                background-color: #0057D8;
+                color: #FFFFFF;
+                min-height: 40px;
+            }
+            QPushButton:hover {
+                background-color: #007BFF;
+                border-color: #007BFF;
+            }
+            QPushButton:pressed {
+                background-color: #0056B3;
+                border-color: #004D99;
+            }
+            QLabel {
+                padding: 10px;
+                color: #333333;
+            }
+        """)
+
+        # Tab Widget for different sections
         self.tabWidget = QTabWidget()
         self.tabWidget.addTab(self.createPersonalInfoPage(), "Personal Info")
         self.tabWidget.addTab(self.createMedicalHistoryPage(), "Medical History")
@@ -22,29 +57,69 @@ class PatientInterface(QWidget):
         layout = QVBoxLayout(self)
         layout.addWidget(self.tabWidget)
 
+    # def __init__(self, user_id, database: DatabaseCommunicator):
+    #     self.user_id = user_id
+    #     self.database = database
+    #     super().__init__()
+    #     self.setWindowTitle('Patient Dashboard')
+    #     self.setGeometry(400, 400, 1280, 800)
+    #     self.initUI()
+    #
+    # def initUI(self):
+    #     self.tabWidget = QTabWidget()
+    #     self.tabWidget.addTab(self.createPersonalInfoPage(), "Personal Info")
+    #     self.tabWidget.addTab(self.createMedicalHistoryPage(), "Medical History")
+    #     self.tabWidget.addTab(self.createAppointmentPage(), "Set Appointment")
+    #
+    #     layout = QVBoxLayout(self)
+    #     layout.addWidget(self.tabWidget)
+
     def createPersonalInfoPage(self):
         widget = QWidget()
         formLayout = QFormLayout()
-        self.name_edit = QLineEdit()  # Making it an instance variable to access in other methods
+
+        self.name_edit = QLineEdit()
         self.age_edit = QLineEdit()
-        formLayout.addRow("Name:", self.name_edit)
-        formLayout.addRow("Age:", self.age_edit)
 
-        # Buttons to update name and age
         self.update_name_btn = QPushButton('Change Name')
-        formLayout.addRow(self.update_name_btn)
-
-        # Connect buttons to their functions
         self.update_name_btn.clicked.connect(self.update_name)
 
         self.picture_label = QLabel()
         self.load_picture_btn = QPushButton('Add/Change Picture')
+        self.load_picture_btn.clicked.connect(self.add_picture)
+
+        formLayout.addRow("Name:", self.name_edit)
+        formLayout.addRow("Age:", self.age_edit)
+        formLayout.addRow(self.update_name_btn)
         formLayout.addRow("Picture:", self.picture_label)
         formLayout.addRow(self.load_picture_btn)
-        self.load_picture_btn.clicked.connect(self.add_picture)
 
         widget.setLayout(formLayout)
         return widget
+
+    # def createPersonalInfoPage(self):
+    #     widget = QWidget()
+    #     formLayout = QFormLayout()
+    #     self.name_edit = QLineEdit()  # Making it an instance variable to access in other methods
+    #     self.age_edit = QLineEdit()
+    #     formLayout.addRow("Name:", self.name_edit)
+    #     formLayout.addRow("Age:", self.age_edit)
+    #
+    #     # Buttons to update name and age
+    #     self.update_name_btn = QPushButton('Change Name')
+    #     formLayout.addRow(self.update_name_btn)
+    #
+    #     # Connect buttons to their functions
+    #     self.update_name_btn.clicked.connect(self.update_name)
+    #
+    #     self.picture_label = QLabel()
+    #     self.load_picture_btn = QPushButton('Add/Change Picture')
+    #     formLayout.addRow("Picture:", self.picture_label)
+    #     formLayout.addRow(self.load_picture_btn)
+    #     self.load_picture_btn.clicked.connect(self.add_picture)
+    #
+    #     widget.setLayout(formLayout)
+    #     return widget
 
     def update_name(self):
         new_name = self.name_edit.text()
@@ -60,9 +135,16 @@ class PatientInterface(QWidget):
         file_name, _ = QFileDialog.getOpenFileName(self, "Select Picture", "", "Image Files (*.png *.jpg *.jpeg *.bmp)")
         if file_name:
             pixmap = QPixmap(file_name)
-            self.picture_label.setPixmap(pixmap.scaled(100, 100, aspectRatioMode=Qt.KeepAspectRatio))
-            # Here you can add code to update the picture path in the database
+            self.picture_label.setPixmap(pixmap.scaled(100, 100, Qt.KeepAspectRatio))
             QMessageBox.information(self, 'Picture Updated', 'Your picture has been updated successfully!')
+
+    # def add_picture(self):
+    #     file_name, _ = QFileDialog.getOpenFileName(self, "Select Picture", "", "Image Files (*.png *.jpg *.jpeg *.bmp)")
+    #     if file_name:
+    #         pixmap = QPixmap(file_name)
+    #         self.picture_label.setPixmap(pixmap.scaled(100, 100, aspectRatioMode=Qt.KeepAspectRatio))
+    #         # Here you can add code to update the picture path in the database
+    #         QMessageBox.information(self, 'Picture Updated', 'Your picture has been updated successfully!')
 
     def createMedicalHistoryPage(self):
         widget = QWidget()
