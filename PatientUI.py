@@ -1,8 +1,15 @@
+from PyQt5 import Qt
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (QWidget, QLineEdit, QPushButton, QVBoxLayout, QLabel, QMessageBox,
-                             QTextEdit, QTabWidget, QFormLayout)
+                             QTextEdit, QTabWidget, QFormLayout, QFileDialog, QTimeEdit, QComboBox)
+from PyQt5.QtWidgets import QDateEdit
+
+from PyQt5.QtWidgets import QCalendarWidget, QDialog, QVBoxLayout
+from PyQt5.QtCore import QDate
+
 import mysql.connector
 from DatabaseComms import DatabaseCommunicator
+
 
 class PatientInterface(QWidget):
 
@@ -128,27 +135,63 @@ class PatientInterface(QWidget):
 
         QMessageBox.information(self, 'Update Successful', 'Your medical history has been updated!')
 
-
     def createAppointmentPage(self):
         widget = QWidget()
         layout = QVBoxLayout()
 
-        # Text area for appointments
+        # Text area for appointments details
         self.appointment_info = QTextEdit()
         layout.addWidget(self.appointment_info)
+
+        # Date picker for appointment time
+        self.appointment_date_edit = QDateEdit()
+        self.appointment_date_edit.setDate(QDate.currentDate())
+        self.appointment_date_edit.setCalendarPopup(True)
+        layout.addWidget(self.appointment_date_edit)
 
         # Button to add an appointment
         self.add_appointment_btn = QPushButton('Add Appointment')
         layout.addWidget(self.add_appointment_btn)
-        self.add_appointment_btn.clicked.connect(self.add_appointment)
+        # self.add_appointment_btn.clicked.connect(self.add_appointment)
+        self.add_appointment_btn.clicked.connect(self.show_calendar)
 
         widget.setLayout(layout)
         return widget
 
-    def add_appointment(self):
-        # Retrieve appointment details from the text area
-        appointment_details = self.appointment_info.toPlainText()
-        appointment_time = ...  # You need to define a way to get this, possibly from another input field
+    def show_calendar(self):
+        self.calendar_dialog = QDialog(self)
+        layout = QVBoxLayout()
 
-        self.database.add_appointment((self.user_id, appointment_details, appointment_time))
+        self.calendar = QCalendarWidget()
+        self.calendar.setMinimumDate(QDate.currentDate())
+        self.calendar.setMaximumDate(QDate.currentDate().addYears(1))
+        self.calendar.setGridVisible(True)
+        layout.addWidget(self.calendar)
+
+        hour_label = QLabel("Time:")
+        layout.addWidget(hour_label)
+        self.hour_combo = QComboBox()
+        self.hour_combo.addItems([f"{i:02}" for i in range(24)])  # Hours from 00 to 23
+        layout.addWidget(self.hour_combo)
+        self.minute_combo = QComboBox()
+        self.minute_combo.addItems([f"{i:02}" for i in range(0, 60, 15)])  # Minutes in increments of 15
+        layout.addWidget(self.minute_combo)
+
+        select_btn = QPushButton('Select Date and Time')
+        select_btn.clicked.connect(self.add_appointment)
+        layout.addWidget(select_btn)
+
+        self.calendar_dialog.setLayout(layout)
+        self.calendar_dialog.setWindowTitle('Select Date and Time for Appointment')
+        self.calendar_dialog.exec_()
+
+    def add_appointment(self):
+        selected_date = self.calendar.selectedDate().toString("yyyy-MM-dd")
+        selected_hour = self.hour_combo.currentText()
+        selected_minute = self.minute_combo.currentText()
+        selected_time = f"{selected_hour}:{selected_minute}"
+        appointment_details = self.appointment_info.toPlainText()
+        full_details = f"{appointment_details} on {selected_date} at {selected_time}"
+        self.database.add_appointment((self.user_id, full_details, selected_date, selected_time))
         QMessageBox.information(self, 'Appointment Added', 'Your appointment has been added successfully!')
+        self.calendar_dialog.close()
