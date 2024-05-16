@@ -1,4 +1,6 @@
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTextEdit, QTabWidget)
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QListWidget, QPushButton, QMessageBox, QTabWidget
+
+
 
 class DoctorInterface(QWidget):
     def __init__(self, user_id, database):
@@ -53,19 +55,56 @@ class DoctorInterface(QWidget):
     def createPatientsPage(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
-        self.patients_list = QTextEdit()
-        self.patients_list.setReadOnly(True)
-        self.patients_list.setText("Patients' List:\nJohn Doe, Flu\nJane Smith, Cold")
+        self.patients_list = QListWidget()
+        ## rewrite to take from db
+        self.patients_list.addItem("John Doe, Flu")
+        self.patients_list.addItem("Jane Smith, Cold")
+        self.patients_list.itemClicked.connect(self.patientClicked)
         layout.addWidget(self.patients_list)
+
+        self.addPatientButton = QPushButton("Add Patient")
+        layout.addWidget(self.addPatientButton)
+
         widget.setLayout(layout)
         return widget
+
+    def patientClicked(self, item):
+        response = QMessageBox.question(self, 'Delete Patient',
+                                        f"Do you want to delete {item.text()}?",
+                                        QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if response == QMessageBox.Yes:
+            print("Delete patient functionality goes here.")
+            # Add actual code to delete patient from the database
+
+    def addPatient(self):
+        # This function should handle the logic for adding a new patient
+        print("Add patient functionality goes here.")
 
     def createAppointmentsPage(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
-        self.appointments = QTextEdit()
-        self.appointments.setReadOnly(True)
-        self.appointments.setText("Today's Appointments:\nJohn Doe at 10:00 AM\nJane Smith at 11:00 AM")
-        layout.addWidget(self.appointments)
+        self.appointments_list = QListWidget()
+        ## rewrite to take from db
+        self.appointments_list.addItem("John Doe at 10:00 AM")
+        self.appointments_list.addItem("Jane Smith at 11:00 AM")
+        self.appointments_list.itemClicked.connect(self.appointmentClicked)  # Connecting click event
+        layout.addWidget(self.appointments_list)
+
+        self.addAppointmentButton = QPushButton("Add Appointment")
+        self.addAppointmentButton.clicked.connect(self.addAppointment)
+        layout.addWidget(self.addAppointmentButton)
+
         widget.setLayout(layout)
         return widget
+
+    def appointmentClicked(self, item):
+        response = QMessageBox.question(self, 'Cancel Appointment',
+                                        f"Do you want to cancel the appointment for {item.text()}?",
+                                        QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if response == QMessageBox.Yes:
+            print("Cancel appointment functionality goes here.")
+            # Add actual code to cancel the appointment in the database
+
+    def addAppointment(self):
+        # This function should handle the logic for adding a new appointment
+        print("Add appointment functionality goes here.")
