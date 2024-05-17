@@ -21,5 +21,6 @@ CREATE TABLE appointments (
     user_id INT,
     appointment_details TEXT,
     appointment_time DATETIME,
+    state ENUM('waiting', 'approved') NOT NULL
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
