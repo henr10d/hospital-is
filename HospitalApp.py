@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
-import sys
+
 # import MySQLdb
 from hashlib import sha256
 from PyQt5.QtWidgets import QMessageBox
@@ -7,6 +7,8 @@ from PyQt5.QtWidgets import QMessageBox
 from DoctorUI import DoctorInterface
 from PatientUI import PatientInterface
 from DatabaseComms import DatabaseCommunicator
+
+
 class HospitalApp(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
@@ -16,7 +18,7 @@ class HospitalApp(QtWidgets.QWidget):
         self.database = DatabaseCommunicator(
             "localhost",
             "root",
-            "1234",
+            "filip",
             "HospitalApp"
         )
         self.database.connect()
@@ -50,7 +52,7 @@ class HospitalApp(QtWidgets.QWidget):
     def setup_ui(self):
         # Stack of widgets
 
-            # Stack of widgets
+        # Stack of widgets
         self.stack = QtWidgets.QStackedWidget(self)
         self.stack.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
 
