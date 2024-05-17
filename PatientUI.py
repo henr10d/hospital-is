@@ -34,6 +34,30 @@ class Database:
             return result[0]
         return None
 
+    def update_personal_info(self, user_id, name, age):
+        query = "UPDATE users SET name = %s, age = %s WHERE id = %s"
+        try:
+            self.cursor.execute(query, (name, age, user_id))
+            self.connection.commit()
+            return True
+        except Exception as e:
+            print("Error updating personal info:", e)
+            return False
+
+    def fetch_personal_info(self, user_id):
+        query = "SELECT name, age FROM users WHERE id = %s"
+        try:
+            self.cursor.execute(query, (user_id,))
+            result = self.cursor.fetchone()
+            if result:
+                return result
+            else:
+                return None, None
+        except Exception as e:
+            print("Error fetching personal info:", e)
+            return None, None
+
+
 
 class PatientInterface(QWidget):
 
@@ -91,14 +115,21 @@ class PatientInterface(QWidget):
         layout.addWidget(self.tabWidget)
 
     def createPersonalInfoPage(self):
+        self.database2 = Database()
         widget = QWidget()
         formLayout = QFormLayout()
 
-        self.name_edit = QLineEdit()
-        self.age_edit = QLineEdit()
+        name, age = self.database2.fetch_personal_info(self.user_id)
+
+        self.name_edit = QLineEdit(name if name is not None else '')
+        # datum prepocet
+        self.age_edit = QLineEdit(str(age) if age is not None else '')
 
         self.update_name_btn = QPushButton('Update personal info')
+        self.update_name_btn.clicked.connect(self.update_personal_info)
         self.load_picture_btn = QPushButton('Add/Change Picture')
+
+
 
         # Creating a horizontal layout to center buttons
         update_btn_layout = QHBoxLayout()
@@ -126,11 +157,27 @@ class PatientInterface(QWidget):
         widget.setLayout(formLayout)
         return widget
 
-
     def update_personal_info(self):
+        self.database2 = Database()
+
+
         new_name = self.name_edit.text()
-        # Here you can add code to update the name in the database
-        QMessageBox.information(self, 'Name Changed', 'Your name has been updated successfully!')
+        new_age = self.age_edit.text()
+        if new_name and new_age:  # Simple validation
+            try:
+                self.database2.update_personal_info(self.user_id, new_name, new_age)
+                QMessageBox.information(self, 'Update Successful',
+                                        'Your personal information has been updated successfully!')
+            except Exception as e:
+                QMessageBox.critical(self, 'Update Failed', 'Failed to update personal information.\n' + str(e))
+        else:
+            QMessageBox.warning(self, 'Invalid Input', 'Please enter valid name and age.')
+
+
+    # def update_personal_info(self):
+    #     new_name = self.name_edit.text()
+    #     # Here you can add code to update the name in the database
+    #     QMessageBox.information(self, 'Name Changed', 'Your name has been updated successfully!')
 
     # asi by to melo ukladat do filu projektu
     def add_picture(self):
@@ -211,17 +258,18 @@ class PatientInterface(QWidget):
 
         for time, description, status in appointments:
             if status == "approved":
-                color = "\U0001F7E2"  # Green circle
+                color = "\U0001F7E2"  # Green
             elif status == "declined":
-                color = "\U0001F534"  # Red circle
+                color = "\U0001F534"  # Red
             else:
-                color = "\U0001F7E1"  # Yellow circle for waiting
+                color = "\U0001F7E1"  # Yellow
             item = QListWidgetItem(f"{color} Time: {time} - Appointment: {description}")
             self.appointment_list.addItem(item)
 
         layout.addWidget(self.appointment_list)
 
         self.add_appointment_btn = QPushButton('Add New Appointment')
+        self.add_appointment_btn.clicked.connect(self.show_calendar)  # Connect the button to the method
         appointment_btn_layout = QHBoxLayout()
         appointment_btn_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
         appointment_btn_layout.addWidget(self.add_appointment_btn)
@@ -233,6 +281,7 @@ class PatientInterface(QWidget):
         layout.addWidget(legend_label)
 
         return widget
+
 
     def show_appointment_details(self, item):
         details_dialog = QDialog(self)

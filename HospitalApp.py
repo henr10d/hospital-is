@@ -24,11 +24,9 @@ class HospitalApp(QtWidgets.QWidget):
         self.database.connect()
 
     def resizeEvent(self, event):
-        # Dynamically adjust font size based on window size
         new_font_size = max(12, min(24, self.width() // 30))
         font = QtGui.QFont("Arial", new_font_size)
 
-        # Apply font size and size constraints to input fields and buttons
         max_button_height = 50  # Maximum button height
         max_text_height = 40    # Maximum text field height
         max_width = 300         # Maximum width for buttons and text fields
@@ -39,20 +37,16 @@ class HospitalApp(QtWidgets.QWidget):
             widget.setFont(font)
             widget.setMaximumSize(max_width, max_text_height)
 
-        # Adjust button size dynamically with a maximum size
         button_height = max(30, min(max_button_height, self.height() // 20))
         for button in self.findChildren(QtWidgets.QPushButton):
             button.setFont(font)
             button.setMinimumHeight(button_height)
             button.setMaximumSize(max_width, max_button_height)
 
-        # Ensure layout updates properly
         super().resizeEvent(event)
 
     def setup_ui(self):
-        # Stack of widgets
 
-        # Stack of widgets
         self.stack = QtWidgets.QStackedWidget(self)
         self.stack.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
 
