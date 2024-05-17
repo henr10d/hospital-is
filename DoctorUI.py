@@ -1,5 +1,3 @@
-from PyQt5 import Qt
-from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QListWidget, QPushButton, QMessageBox, QTabWidget, QFormLayout, \
     QLineEdit, QLabel, QHBoxLayout, QSpacerItem, QSizePolicy
 

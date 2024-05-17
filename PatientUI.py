@@ -1,8 +1,6 @@
 import mysql
-# from PyQt5 import Qt
-from PyQt5.QtCore import Qt
 
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtWidgets import (QWidget, QLineEdit, QPushButton, QLabel, QMessageBox,
                              QTextEdit, QTabWidget, QFormLayout, QFileDialog, QComboBox, QHBoxLayout, QSpacerItem,
                              QSizePolicy, QListWidgetItem, QListWidget, QDialogButtonBox)
@@ -202,17 +200,23 @@ class PatientInterface(QWidget):
         self.appointment_list = QListWidget()
         self.appointment_list.itemClicked.connect(self.show_appointment_details)
 
-        # DB date text, mozna doktor
+        # DB, date, text, status
         appointments = [
-            ("2023-05-20 09:00", "Dental check-up"),
-            ("2023-05-22 14:00", "General physician follow-up"),
-            ("2023-05-30 16:00", "Orthopedic consultation"),
-            ("2023-06-05 10:00", "Cardiology exam"),
-            ("2023-06-12 13:00", "Nutritionist appointment")
+            ("2023-05-20 09:00", "Dental check-up", "approved"),
+            ("2023-05-22 14:00", "General physician follow-up", "declined"),
+            ("2023-05-30 16:00", "Orthopedic consultation", "waiting"),
+            ("2023-06-05 10:00", "Cardiology exam", "approved"),
+            ("2023-06-12 13:00", "Nutritionist appointment", "waiting")
         ]
 
-        for time, description in appointments:
-            item = QListWidgetItem(f"Time: {time} - Appointment: {description}")
+        for time, description, status in appointments:
+            if status == "approved":
+                color = "\U0001F7E2"  # Green circle
+            elif status == "declined":
+                color = "\U0001F534"  # Red circle
+            else:
+                color = "\U0001F7E1"  # Yellow circle for waiting
+            item = QListWidgetItem(f"{color} Time: {time} - Appointment: {description}")
             self.appointment_list.addItem(item)
 
         layout.addWidget(self.appointment_list)
@@ -224,7 +228,9 @@ class PatientInterface(QWidget):
         appointment_btn_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
 
         layout.addLayout(appointment_btn_layout)
-        self.add_appointment_btn.clicked.connect(self.show_calendar)
+
+        legend_label = QLabel("🟢 Approved \U0001F7E1 Waiting 🔴 Declined")
+        layout.addWidget(legend_label)
 
         return widget
 
@@ -247,9 +253,9 @@ class PatientInterface(QWidget):
         details_dialog.exec_()
 
     def cancel_appointment(self, item):
+        # hehe
         self.appointment_list.takeItem(self.appointment_list.row(item))
         QMessageBox.information(self, 'Appointment Cancelled', 'The appointment has been successfully cancelled!')
-
 
     def show_calendar(self):
         self.calendar_dialog = QDialog(self)
