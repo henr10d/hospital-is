@@ -133,10 +133,10 @@ class DoctorInterface(QWidget):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         self.appointments_list = QListWidget()
-        # rewrite to take from db
+        # rewrite to take from db name, time, date
         self.appointments_list.addItem("John Doe at 10:00 AM")
         self.appointments_list.addItem("Jane Smith at 11:00 AM")
-        self.appointments_list.itemClicked.connect(self.appointmentClicked)  # Connecting click event
+        self.appointments_list.itemClicked.connect(self.appointmentClicked)  # Connecting click event hehe
         layout.addWidget(self.appointments_list)
 
         self.addAppointmentButton = QPushButton("Add Appointment")
