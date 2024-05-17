@@ -1,6 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QListWidget, QPushButton, QMessageBox, QTabWidget
 
-
 class DoctorInterface(QWidget):
     def __init__(self, user_id, database):
         self.user_id = user_id

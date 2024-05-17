@@ -1,7 +1,6 @@
 import mysql.connector
 from mysql.connector import errorcode
 
-
 class DatabaseCommunicator:
     def __init__(self, host, user, password, database):
         """
