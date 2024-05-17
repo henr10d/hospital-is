@@ -1,7 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QListWidget, QPushButton, QMessageBox, QTabWidget
 
 
-
 class DoctorInterface(QWidget):
     def __init__(self, user_id, database):
         self.user_id = user_id
@@ -56,7 +55,7 @@ class DoctorInterface(QWidget):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         self.patients_list = QListWidget()
-        ## rewrite to take from db
+        # rewrite to take from db
         self.patients_list.addItem("John Doe, Flu")
         self.patients_list.addItem("Jane Smith, Cold")
         self.patients_list.itemClicked.connect(self.patientClicked)
@@ -84,7 +83,7 @@ class DoctorInterface(QWidget):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         self.appointments_list = QListWidget()
-        ## rewrite to take from db
+        # rewrite to take from db
         self.appointments_list.addItem("John Doe at 10:00 AM")
         self.appointments_list.addItem("Jane Smith at 11:00 AM")
         self.appointments_list.itemClicked.connect(self.appointmentClicked)  # Connecting click event

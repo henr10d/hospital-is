@@ -1,14 +1,39 @@
-from PyQt5 import Qt
+import mysql
+# from PyQt5 import Qt
+from PyQt5.QtCore import Qt
+
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import (QWidget, QLineEdit, QPushButton, QVBoxLayout, QLabel, QMessageBox,
-                             QTextEdit, QTabWidget, QFormLayout, QFileDialog, QTimeEdit, QComboBox)
-from PyQt5.QtWidgets import QDateEdit
+from PyQt5.QtWidgets import (QWidget, QLineEdit, QPushButton, QLabel, QMessageBox,
+                             QTextEdit, QTabWidget, QFormLayout, QFileDialog, QComboBox)
 
 from PyQt5.QtWidgets import QCalendarWidget, QDialog, QVBoxLayout
-from PyQt5.QtCore import QDate
+from PyQt5.QtCore import QDate, QBuffer, QByteArray
 
-import mysql.connector
+# import mysql.connector
 from DatabaseComms import DatabaseCommunicator
+
+class Database:
+    def __init__(self):
+        self.connection = mysql.connector.connect(
+            host='localhost',
+            user='root',
+            password='filip',
+            database='HospitalApp'
+        )
+        self.cursor = self.connection.cursor()
+
+    def update_picture(self, user_id, image_path):
+        query = "UPDATE users SET image_path = %s WHERE id = %s"
+        self.cursor.execute(query, (image_path, user_id))
+        self.connection.commit()
+
+    def fetch_picture(self, user_id):
+        query = "SELECT image_path FROM users WHERE id = %s"
+        self.cursor.execute(query, (user_id,))
+        result = self.cursor.fetchone()
+        if result:
+            return result[0]
+        return None
 
 
 class PatientInterface(QWidget):
@@ -22,6 +47,8 @@ class PatientInterface(QWidget):
     def initUI(self):
         self.setWindowTitle('Patient Dashboard')
         self.setGeometry(400, 400, 1280, 800)
+        # Inside the initUI method or wherever you define these buttons
+
         self.setStyleSheet("""
             QWidget {
                 font-size: 16px;
@@ -71,44 +98,67 @@ class PatientInterface(QWidget):
         self.name_edit = QLineEdit()
         self.age_edit = QLineEdit()
 
-        self.update_name_btn = QPushButton('Change Name')
-        self.update_name_btn.clicked.connect(self.update_name)
+        self.update_name_btn = QPushButton('Update personal info')
+        self.update_name_btn.clicked.connect(self.update_personal_info)
 
         self.picture_label = QLabel()
         self.load_picture_btn = QPushButton('Add/Change Picture')
         self.load_picture_btn.clicked.connect(self.add_picture)
 
+        self.update_name_btn.setMaximumWidth(200)
+        self.load_picture_btn.setMaximumWidth(200)
+
+        self.database2 = Database()
+
+        current_picture_path = self.database2.fetch_picture(self.user_id)
+        print(current_picture_path)
+        if current_picture_path:
+            pixmap = QPixmap(current_picture_path)  # Load from file path
+            self.picture_label.setPixmap(pixmap.scaled(100, 100, Qt.KeepAspectRatio))
+
+        # Adding rows to the form
         formLayout.addRow("Name:", self.name_edit)
         formLayout.addRow("Age:", self.age_edit)
         formLayout.addRow(self.update_name_btn)
-        formLayout.addRow("Picture:", self.picture_label)
+        # formLayout.addRow("Picture:", self.picture_label)
+        formLayout.addRow(self.picture_label)
         formLayout.addRow(self.load_picture_btn)
 
         widget.setLayout(formLayout)
         return widget
 
-    def update_name(self):
+
+    def update_personal_info(self):
         new_name = self.name_edit.text()
         # Here you can add code to update the name in the database
         QMessageBox.information(self, 'Name Changed', 'Your name has been updated successfully!')
 
-    def update_age(self):
-        new_age = self.age_edit.text()
-        # Here you can add code to update the age in the database
-        QMessageBox.information(self, 'Age Changed', 'Your age has been updated successfully!')
 
     def add_picture(self):
-        file_name, _ = QFileDialog.getOpenFileName(self, "Select Picture", "", "Image Files (*.png *.jpg *.jpeg *.bmp)")
+        file_name, _ = QFileDialog.getOpenFileName(self, "Select Picture", "",
+                                                   "Image Files (*.png *.jpg *.jpeg *.bmp)")
         if file_name:
             pixmap = QPixmap(file_name)
-            self.picture_label.setPixmap(pixmap.scaled(100, 100, Qt.KeepAspectRatio))
+            # Save the file path to the database
+            print(file_name)
+            self.database2 = Database()
+
+
+            self.database2.update_picture(self.user_id, file_name)
             QMessageBox.information(self, 'Picture Updated', 'Your picture has been updated successfully!')
+
+            # Update the picture label
+            # self.picture_label.setPixmap(pixmap.scaled(100, 100, Qt.KeepAspectRatio))
+
+            QMessageBox.information(self, 'Picture Updated', 'Your picture has been updated successfully!')
+
 
     def createMedicalHistoryPage(self):
         widget = QWidget()
         layout = QVBoxLayout()
 
         # Text area for medical history
+
 
         record = self.database.fetch_medical_record(self.user_id)
         if (record):
@@ -139,17 +189,10 @@ class PatientInterface(QWidget):
         widget = QWidget()
         layout = QVBoxLayout()
 
-        # Text area for appointments details
         self.appointment_info = QTextEdit()
         layout.addWidget(self.appointment_info)
 
-        # Date picker for appointment time
-        self.appointment_date_edit = QDateEdit()
-        self.appointment_date_edit.setDate(QDate.currentDate())
-        self.appointment_date_edit.setCalendarPopup(True)
-        layout.addWidget(self.appointment_date_edit)
 
-        # Button to add an appointment
         self.add_appointment_btn = QPushButton('Add Appointment')
         layout.addWidget(self.add_appointment_btn)
         # self.add_appointment_btn.clicked.connect(self.add_appointment)
@@ -171,10 +214,10 @@ class PatientInterface(QWidget):
         hour_label = QLabel("Time:")
         layout.addWidget(hour_label)
         self.hour_combo = QComboBox()
-        self.hour_combo.addItems([f"{i:02}" for i in range(24)])  # Hours from 00 to 23
+        self.hour_combo.addItems([f"{i:02}" for i in range(24)])
         layout.addWidget(self.hour_combo)
         self.minute_combo = QComboBox()
-        self.minute_combo.addItems([f"{i:02}" for i in range(0, 60, 15)])  # Minutes in increments of 15
+        self.minute_combo.addItems([f"{i:02}" for i in range(0, 60, 15)])
         layout.addWidget(self.minute_combo)
 
         select_btn = QPushButton('Select Date and Time')
