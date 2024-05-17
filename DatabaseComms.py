@@ -1,6 +1,7 @@
 import mysql.connector
 from mysql.connector import errorcode
 
+
 class DatabaseCommunicator:
     def __init__(self, host, user, password, database):
         """
@@ -93,14 +94,43 @@ class DatabaseCommunicator:
             return result[0][0]
         return None
 
-    def add_user_to_database(self, params):
+    def get_doctor(self, params):
         """
-        Method for adding user to the database
-        :param params: parameters required to log new user to the database
+        Method for getting data about a doctor based on id
+        :param params: tuple with id of a doctor
+        :return: data about the doctor or none
+        """
+        statement = "SELECT * FROM doctors WHERE doctor_id = %s"
+        result = self.database_query(statement, params, False)
+        if result:
+            return result[0]
+        return None
+
+    def add_user_to_database(self, username, password, role, name, birth, insurance):
+        """
+        Adds new user to the database
+        :param username: username of the new user as string
+        :param password: password of the new user as string
+        :param role: role of the user as string, can be one of ('patient', 'doctor')
+        :param name: personal name of the new user as string
+        :param birth: date of birth of the user
+        :param insurance: insurance company covering the user
         :return: None
         """
-        statement = "INSERT INTO users (name, password, role) VALUES (%s, %s, %s)"
-        self.database_query(statement, params, True)
+        statement = "INSERT INTO users (username, password, role) VALUES (%s, %s, %s)"
+        self.database_query(statement, (username, password, role), True)
+        user_id = self.get_user_id((username, password, role))
+        if user_id is None:
+            # throw some error
+            pass
+        if role == "patient":
+            statement = "INSERT INTO patients (patient_id, name, birth, insurance) VALUES (%s, %s, %s, %s)"
+        elif role == "doctor":
+            statement = "INSERT INTO doctors (doctor_id, name, birth, insurance) VALUES (%s, %s, %s, %s)"
+        else:
+            # throw some error
+            pass
+        self.database_query(statement, (user_id, name, birth, insurance), True)
 
     def fetch_medical_record(self, user_id):
         """
@@ -110,7 +140,7 @@ class DatabaseCommunicator:
         no medical history
         """
         statement = "SELECT details FROM medical_history WHERE user_id = %s"
-        result = self.database_query(statement, (user_id, ), False)
+        result = self.database_query(statement, (user_id,), False)
         if result:
             return result[0]
         return None

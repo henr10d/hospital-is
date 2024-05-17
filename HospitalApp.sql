@@ -4,7 +4,7 @@ USE HospitalApp;
 
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    username VARCHAR(255) NOT NULL,
     password VARCHAR(255) NOT NULL,
     role ENUM('doctor', 'patient') NOT NULL,
 );
@@ -12,6 +12,9 @@ CREATE TABLE users (
 CREATE TABLE doctors (
     doctor_id INT PRIMARY KEY,
     image_path VARCHAR(255),
+    name VARCHAR(255),
+    birth DATETIME,
+    insurance VARCHAR(255),
     FOREIGN KEY (doctor_id) REFERENCES users(id)
 );
 
@@ -19,7 +22,9 @@ CREATE TABLE patients (
     patient_id INT PRIMARY KEY,
     doctor_id INT,
     image_path VARCHAR(255),
-    age INT,
+    name VARCHAR(255),
+    birth DATETIME,
+    insurance VARCHAR(255),
     FOREIGN KEY (patient_id) REFERENCES users(id)
     FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id)
 );
