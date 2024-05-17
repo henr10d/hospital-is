@@ -4,7 +4,8 @@ from PyQt5.QtCore import Qt
 
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (QWidget, QLineEdit, QPushButton, QLabel, QMessageBox,
-                             QTextEdit, QTabWidget, QFormLayout, QFileDialog, QComboBox)
+                             QTextEdit, QTabWidget, QFormLayout, QFileDialog, QComboBox, QHBoxLayout, QSpacerItem,
+                             QSizePolicy)
 
 from PyQt5.QtWidgets import QCalendarWidget, QDialog, QVBoxLayout
 from PyQt5.QtCore import QDate, QBuffer, QByteArray
@@ -99,30 +100,30 @@ class PatientInterface(QWidget):
         self.age_edit = QLineEdit()
 
         self.update_name_btn = QPushButton('Update personal info')
-        self.update_name_btn.clicked.connect(self.update_personal_info)
-
-        self.picture_label = QLabel()
         self.load_picture_btn = QPushButton('Add/Change Picture')
-        self.load_picture_btn.clicked.connect(self.add_picture)
 
-        self.update_name_btn.setMaximumWidth(200)
-        self.load_picture_btn.setMaximumWidth(200)
+        # Creating a horizontal layout to center buttons
+        update_btn_layout = QHBoxLayout()
+        update_btn_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        update_btn_layout.addWidget(self.update_name_btn)
+        update_btn_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
 
-        self.database2 = Database()
+        picture_btn_layout = QHBoxLayout()
+        picture_btn_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        picture_btn_layout.addWidget(self.load_picture_btn)
+        picture_btn_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
 
-        current_picture_path = self.database2.fetch_picture(self.user_id)
-        print(current_picture_path)
-        if current_picture_path:
-            pixmap = QPixmap(current_picture_path)  # Load from file path
-            self.picture_label.setPixmap(pixmap.scaled(100, 100, Qt.KeepAspectRatio))
+        # chybi db snimky
+        # current_picture_path = self.database.fetch_picture(self.user_id)
+        # if current_picture_path:
+        #     pixmap = QPixmap(current_picture_path)
+        #     self.picture_label.setPixmap(pixmap.scaled(100, 100, Qt.KeepAspectRatio))
 
-        # Adding rows to the form
         formLayout.addRow("Name:", self.name_edit)
         formLayout.addRow("Age:", self.age_edit)
-        formLayout.addRow(self.update_name_btn)
-        # formLayout.addRow("Picture:", self.picture_label)
-        formLayout.addRow(self.picture_label)
-        formLayout.addRow(self.load_picture_btn)
+        formLayout.addRow(update_btn_layout)
+        # formLayout.addRow(self.picture_label)
+        formLayout.addRow(picture_btn_layout)
 
         widget.setLayout(formLayout)
         return widget
@@ -133,13 +134,12 @@ class PatientInterface(QWidget):
         # Here you can add code to update the name in the database
         QMessageBox.information(self, 'Name Changed', 'Your name has been updated successfully!')
 
-
+    # asi by to melo ukladat do filu projektu
     def add_picture(self):
         file_name, _ = QFileDialog.getOpenFileName(self, "Select Picture", "",
                                                    "Image Files (*.png *.jpg *.jpeg *.bmp)")
         if file_name:
             pixmap = QPixmap(file_name)
-            # Save the file path to the database
             print(file_name)
             self.database2 = Database()
 
@@ -147,6 +147,7 @@ class PatientInterface(QWidget):
             self.database2.update_picture(self.user_id, file_name)
             QMessageBox.information(self, 'Picture Updated', 'Your picture has been updated successfully!')
 
+            #¯\_(ツ)_/¯
             # Update the picture label
             # self.picture_label.setPixmap(pixmap.scaled(100, 100, Qt.KeepAspectRatio))
 

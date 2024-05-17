@@ -1,4 +1,8 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QListWidget, QPushButton, QMessageBox, QTabWidget
+from PyQt5 import Qt
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QListWidget, QPushButton, QMessageBox, QTabWidget, QFormLayout, \
+    QLineEdit, QLabel, QHBoxLayout, QSpacerItem, QSizePolicy
+
 
 class DoctorInterface(QWidget):
     def __init__(self, user_id, database):
@@ -46,9 +50,55 @@ class DoctorInterface(QWidget):
         self.tabWidget = QTabWidget()
         self.tabWidget.addTab(self.createPatientsPage(), "Patients")
         self.tabWidget.addTab(self.createAppointmentsPage(), "Appointments")
+        self.tabWidget.addTab(self.createPersonalInfoPage(), "Personal Info")
+
 
         layout = QVBoxLayout(self)
         layout.addWidget(self.tabWidget)
+
+    def createPersonalInfoPage(self):
+        widget = QWidget()
+        formLayout = QFormLayout()
+
+        self.name_edit = QLineEdit()
+        self.age_edit = QLineEdit()
+
+        self.update_name_btn = QPushButton('Update personal info')
+        self.load_picture_btn = QPushButton('Add/Change Picture')
+
+        # Creating a horizontal layout to center buttons
+        update_btn_layout = QHBoxLayout()
+        update_btn_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        update_btn_layout.addWidget(self.update_name_btn)
+        update_btn_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+
+        picture_btn_layout = QHBoxLayout()
+        picture_btn_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        picture_btn_layout.addWidget(self.load_picture_btn)
+        picture_btn_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+
+        # chybi db snimky
+        # current_picture_path = self.database.fetch_picture(self.user_id)
+        # if current_picture_path:
+        #     pixmap = QPixmap(current_picture_path)
+        #     self.picture_label.setPixmap(pixmap.scaled(100, 100, Qt.KeepAspectRatio))
+
+        formLayout.addRow("Name:", self.name_edit)
+        formLayout.addRow("Age:", self.age_edit)
+        formLayout.addRow(update_btn_layout)
+        # formLayout.addRow(self.picture_label)
+        formLayout.addRow(picture_btn_layout)
+
+        widget.setLayout(formLayout)
+        return widget
+
+    # dodelat
+    def update_personal_info(self):
+        pass
+
+    # dodelat image picker
+    def add_picture(self):
+        pass
 
     def createPatientsPage(self):
         widget = QWidget()
@@ -72,11 +122,12 @@ class DoctorInterface(QWidget):
                                         QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if response == QMessageBox.Yes:
             print("Delete patient functionality goes here.")
-            # Add actual code to delete patient from the database
+            # db
 
+    # patent picker
     def addPatient(self):
-        # This function should handle the logic for adding a new patient
         print("Add patient functionality goes here.")
+
 
     def createAppointmentsPage(self):
         widget = QWidget()
@@ -101,8 +152,6 @@ class DoctorInterface(QWidget):
                                         QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if response == QMessageBox.Yes:
             print("Cancel appointment functionality goes here.")
-            # Add actual code to cancel the appointment in the database
 
     def addAppointment(self):
-        # This function should handle the logic for adding a new appointment
         print("Add appointment functionality goes here.")
