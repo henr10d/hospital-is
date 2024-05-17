@@ -5,7 +5,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (QWidget, QLineEdit, QPushButton, QLabel, QMessageBox,
                              QTextEdit, QTabWidget, QFormLayout, QFileDialog, QComboBox, QHBoxLayout, QSpacerItem,
-                             QSizePolicy, QListWidgetItem, QListWidget)
+                             QSizePolicy, QListWidgetItem, QListWidget, QDialogButtonBox)
 
 from PyQt5.QtWidgets import QCalendarWidget, QDialog, QVBoxLayout
 from PyQt5.QtCore import QDate, QBuffer, QByteArray
@@ -199,10 +199,25 @@ class PatientInterface(QWidget):
         widget = QWidget()
         layout = QVBoxLayout(widget)
 
-        self.appointment_info = QTextEdit()
-        layout.addWidget(self.appointment_info)
+        self.appointment_list = QListWidget()
+        self.appointment_list.itemClicked.connect(self.show_appointment_details)
 
-        self.add_appointment_btn = QPushButton('Add Appointment')
+        # DB date text, mozna doktor
+        appointments = [
+            ("2023-05-20 09:00", "Dental check-up"),
+            ("2023-05-22 14:00", "General physician follow-up"),
+            ("2023-05-30 16:00", "Orthopedic consultation"),
+            ("2023-06-05 10:00", "Cardiology exam"),
+            ("2023-06-12 13:00", "Nutritionist appointment")
+        ]
+
+        for time, description in appointments:
+            item = QListWidgetItem(f"Time: {time} - Appointment: {description}")
+            self.appointment_list.addItem(item)
+
+        layout.addWidget(self.appointment_list)
+
+        self.add_appointment_btn = QPushButton('Add New Appointment')
         appointment_btn_layout = QHBoxLayout()
         appointment_btn_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
         appointment_btn_layout.addWidget(self.add_appointment_btn)
@@ -213,25 +228,28 @@ class PatientInterface(QWidget):
 
         return widget
 
-    # def createAppointmentPage(self):
-    #     widget = QWidget()
-    #     layout = QVBoxLayout()
-    #
-    #     self.appointment_info = QTextEdit()
-    #     layout.addWidget(self.appointment_info)
-    #
-    #
-    #     self.add_appointment_btn = QPushButton('Add Appointment')
-    #     appointment_btn_layout = QHBoxLayout()
-    #     appointment_btn_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
-    #     appointment_btn_layout.addWidget(self.add_appointment_btn)
-    #     appointment_btn_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
-    #     layout.addWidget(self.add_appointment_btn)
-    #     # self.add_appointment_btn.clicked.connect(self.add_appointment)
-    #     self.add_appointment_btn.clicked.connect(self.show_calendar)
-    #
-    #     widget.setLayout(layout)
-    #     return widget
+    def show_appointment_details(self, item):
+        details_dialog = QDialog(self)
+        details_dialog.setWindowTitle('Appointment Details')
+        layout = QVBoxLayout(details_dialog)
+
+        label = QLabel(f"Details for the selected appointment:\n{item.text()}")
+        layout.addWidget(label)
+
+        button_box = QDialogButtonBox(QDialogButtonBox.Cancel | QDialogButtonBox.Close)
+        button_box.accepted.connect(details_dialog.accept)
+        button_box.rejected.connect(details_dialog.reject)
+        layout.addWidget(button_box)
+
+        button_box.button(QDialogButtonBox.Cancel).clicked.connect(lambda: self.cancel_appointment(item))
+
+        details_dialog.setLayout(layout)
+        details_dialog.exec_()
+
+    def cancel_appointment(self, item):
+        self.appointment_list.takeItem(self.appointment_list.row(item))
+        QMessageBox.information(self, 'Appointment Cancelled', 'The appointment has been successfully cancelled!')
+
 
     def show_calendar(self):
         self.calendar_dialog = QDialog(self)
