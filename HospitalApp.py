@@ -161,24 +161,22 @@ class HospitalApp(QtWidgets.QWidget):
     def show_login_form(self):
         self.stack.setCurrentIndex(0)
 
-    def open_role_interface(self, user_id):
+    def open_role_interface(self, user_id, username):
         self.hide()
         if self.role_input.currentText().lower() == "doctor":
-            self.interface = DoctorInterface(user_id, self.database)
+            self.interface = DoctorInterface(user_id, self.database, username)
         elif self.role_input.currentText().lower() == "patient":
-            self.interface = PatientInterface(user_id, self.database)
+            self.interface = PatientInterface(user_id, self.database, username)
         self.interface.show()
 
     def login(self):
         name = self.username_input.text()
-        # password = self.password_input.text()
         role = self.role_input.currentText().lower()
         password = sha256(self.password_input.text().encode()).hexdigest()  # Hash the password
-        print((name, password, role))
-        result = self.database.get_user_id((name, password, role))
+        result = self.database.login((name, password, role))
         if result:
             QMessageBox.information(self, 'Login Success', f'Welcome {role} {name}!')
-            self.open_role_interface(result)
+            self.open_role_interface(result, name)
         else:
             QMessageBox.warning(self, 'Login Failed', 'Invalid credentials or role!')
 

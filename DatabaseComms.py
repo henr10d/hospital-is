@@ -131,11 +131,11 @@ class DatabaseCommunicator:
     def add_user_to_database(self, name, birth, username, password, role, insurance):
         """
         Adds new user to the database
+        :param name: personal name of the new user as string
+        :param birth: date of birth of the user
         :param username: username of the new user as string
         :param password: password of the new user as string
         :param role: role of the user as string, can be one of ('patient', 'doctor')
-        :param name: personal name of the new user as string
-        :param birth: date of birth of the user
         :param insurance: insurance company covering the user
         :return: None
         """
@@ -146,9 +146,11 @@ class DatabaseCommunicator:
             # throw some error
             pass
         if role == "patient":
-            statement = "INSERT INTO patients (patient_id, name, birth, insurance) VALUES (%s, %s, %s, %s)"
+            statement = ("INSERT INTO patients (patient_id, name, birth, insurance) "
+                         "VALUES (%s, %s, %s, %s)")
         elif role == "doctor":
-            statement = "INSERT INTO doctors (doctor_id, name, birth, insurance) VALUES (%s, %s, %s, %s)"
+            statement = ("INSERT INTO doctors (doctor_id, name, birth, insurance) "
+                         "VALUES (%s, %s, %s, %s)")
         else:
             # throw some error
             pass
@@ -161,11 +163,12 @@ class DatabaseCommunicator:
         :return: the medical history of the patient or None if the user has
         no medical history
         """
-        statement = "SELECT * FROM medical_history WHERE patient_id = %s"
+        statement = ("SELECT appointment_time, details "
+                     "FROM medical_history "
+                     "WHERE patient_id = %s "
+                     "ORDER BY appointment_time DESC")
         result = self.database_query(statement, (patient_id,), False)
-        if result:
-            return result
-        return None
+        return result
 
     def update_medical_record(self, params):
         """
@@ -191,9 +194,11 @@ class DatabaseCommunicator:
         :param params: parameters of the appointment
         :return: None
         """
-        statement = ("INSERT INTO appointments (patient_id, doctor_id, appointment_details,"
-                     " appointment_time, status) VALUES (%s, %s, %s, %s, %s))")
-        self.database_query(statement, params + ("waiting", ), True)
+        statement = """
+                    INSERT INTO appointments (patient_id, details, appointment_time, status)
+                    VALUES (%s, %s, %s, %s);
+                    """
+        self.database_query(statement, params, True)
 
     def fetch_patient_appointments(self, patient_id):
         """
@@ -202,11 +207,12 @@ class DatabaseCommunicator:
         :return: the medical history of the patient or None if the user has
         no medical history
         """
-        statement = "SELECT * FROM appointments WHERE patient_id = %s"
+        statement = ("SELECT appointment_time, details, status "
+                     "FROM appointments "
+                     "WHERE patient_id = %s "
+                     "ORDER BY appointment_time DESC")
         result = self.database_query(statement, (patient_id,), False)
-        if result:
-            return result
-        return None
+        return result
 
     def fetch_doctor_appointments(self, doctor_id):
         """
@@ -217,19 +223,64 @@ class DatabaseCommunicator:
        """
         statement = "SELECT * FROM appointments WHERE doctor_id = %s"
         result = self.database_query(statement, (doctor_id,), False)
-        if result:
-            return result
-        return None
+        return result
 
-    def approved_appointment(self, appointment_id):
+    def approve_appointment(self, appointment_id):
         """
-       Method that fetches the medical history of patient with user_id
-       :param appointment_id: id of the appointment to be accepted
-       :return: the medical history of the patient or None if the user has
-       no medical history
+       Method that approves appointment with appointment_id
+       :param appointment_id: id of the appointment to be approved
+       :return: None
        """
         statement = "UPDATE appointments SET status = %s WHERE id = %s"
-        result = self.database_query(statement, ("approved", appointment_id), False)
-        if result:
-            return result
+        self.database_query(statement, ("approved", appointment_id), True)
+
+    def decline_appointment(self, appointment_id):
+        """
+       Method that approves declines with appointment_id
+       :param appointment_id: id of the appointment to be declined
+       :return: None
+       """
+        statement = "UPDATE appointments SET status = %s WHERE id = %s"
+        self.database_query(statement, ("declined", appointment_id), True)
+
+    def update_personal_info(self, params):
+        """
+        Method to update the personal information of a patient
+        :param params: new name and age and id of the patient
+        :return: None
+        """
+        statement = "UPDATE patients SET name = %s WHERE patient_id = %s"
+        self.database_query(statement, params, True)
+
+    def update_patient_picture(self, patient_id, image_path):
+        """
+        Method to update path to an image for patient
+        :param patient_id: id of the patient
+        :param image_path: path to the image
+        :return: None
+        """
+        statement = "UPDATE patients SET image_path = %s WHERE patient_id = %s"
+        self.database_query(statement, (image_path, patient_id), True)
+
+    def fetch_patient_picture(self, patient_id):
+        """
+        Method to get path to an image of a patient
+        :param patient_id: id of the patient
+        :return: path to the image or None if the path does not exist
+        """
+        statement = "SELECT image_path FROM patients WHERE patient_id = %s"
+        result = self.database_query(statement, (patient_id, ), False)
+        if result is not None:
+            return result[0]
         return None
+
+    def get_login_credentials(self, user_id):
+        statement = "SELECT username, password FROM users WHERE id = %s"
+        result = self.database_query(statement, (user_id,), False)
+        if result is not None:
+            return result[0]
+        return None
+
+    def update_login_credentials(self, params):
+        statement = "UPDATE users SET username = %s, password = %s WHERE id = %s"
+        self.database_query(statement, params, True)

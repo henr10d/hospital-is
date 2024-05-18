@@ -1,103 +1,25 @@
-import mysql
-
-from PyQt5.QtGui import QPixmap, QIcon
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (QWidget, QLineEdit, QPushButton, QLabel, QMessageBox,
                              QTextEdit, QTabWidget, QFormLayout, QFileDialog, QComboBox, QHBoxLayout, QSpacerItem,
                              QSizePolicy, QListWidgetItem, QListWidget, QDialogButtonBox)
 
 from PyQt5.QtWidgets import QCalendarWidget, QDialog, QVBoxLayout
-from PyQt5.QtCore import QDate, QBuffer, QByteArray
+from PyQt5.QtCore import QDate
+from hashlib import sha256
 
-# import mysql.connector
 from DatabaseComms import DatabaseCommunicator
-
-class Database:
-    def __init__(self):
-        self.connection = mysql.connector.connect(
-            host='localhost',
-            user='root',
-            password='filip',
-            database='HospitalApp'
-        )
-        self.cursor = self.connection.cursor()
-
-    def update_picture(self, user_id, image_path):
-        query = "UPDATE users SET image_path = %s WHERE id = %s"
-        self.cursor.execute(query, (image_path, user_id))
-        self.connection.commit()
-
-    def fetch_picture(self, user_id):
-        query = "SELECT image_path FROM users WHERE id = %s"
-        self.cursor.execute(query, (user_id,))
-        result = self.cursor.fetchone()
-        if result:
-            return result[0]
-        return None
-
-    def update_personal_info(self, user_id, name, age):
-        query = "UPDATE users SET name = %s, age = %s WHERE id = %s"
-        try:
-            self.cursor.execute(query, (name, age, user_id))
-            self.connection.commit()
-            return True
-        except Exception as e:
-            print("Error updating personal info:", e)
-            return False
-
-    def fetch_personal_info(self, user_id):
-        query = "SELECT name, age FROM users WHERE id = %s"
-        try:
-            self.cursor.execute(query, (user_id,))
-            result = self.cursor.fetchone()
-            if result:
-                return result
-            else:
-                return None, None
-        except Exception as e:
-            print("Error fetching personal info:", e)
-            return None, None
-
-    def fetch_medical_history(self, patient_id):
-        try:
-            query = "SELECT appointment_time, details FROM medical_history WHERE patient_id = %s ORDER BY appointment_time DESC"
-            self.cursor.execute(query, (patient_id,))
-            return self.cursor.fetchall()
-        except Exception as e:
-            print(f"Error fetching medical history: {e}")
-            return None
-
-    def insert_medical_record(self, patient_id, new_history):
-        try:
-            query = "INSERT INTO medical_history (patient_id, details, appointment_time) VALUES (%s, %s, NOW())"
-            self.cursor.execute(query, (patient_id, new_history))
-            self.connection.commit()
-        except Exception as e:
-            print("Error inserting medical record:", e)
-            return False
-        return True
-
-
-    def fetch_appointments(self, patient_id):
-        query = """
-        SELECT appointment_time, appointment_details, status 
-        FROM appointments 
-        WHERE patient_id = %s
-        ORDER BY appointment_time DESC
-        """
-        try:
-            self.cursor.execute(query, (patient_id,))
-            return self.cursor.fetchall()
-        except Exception as e:
-            print("Error fetching appointments:", e)
-            return []
-
 
 class PatientInterface(QWidget):
 
-    def __init__(self, user_id, database: DatabaseCommunicator):
+    def __init__(self, patient, database: DatabaseCommunicator, username):
         super().__init__()
-        self.user_id = user_id
+        self.patient_id = patient[0]
+        self.doctor_id = patient[1]
+        self.patient_name = patient[3]
+        self.patient_birth = patient[4]
+        self.insurance = patient[5]
         self.database = database
+        self.username = username
         self.initUI()
 
     def initUI(self):
@@ -142,7 +64,7 @@ class PatientInterface(QWidget):
         self.tabWidget = QTabWidget()
         self.tabWidget.addTab(self.createPersonalInfoPage(), "Personal Info")
         self.tabWidget.addTab(self.createMedicalHistoryPage(), "Medical History")
-        self.tabWidget.addTab(self.createAppointmentPage(), "Set Appointment")
+        self.tabWidget.addTab(self.createAppointmentPage(), "Appointments")
 
         layout = QVBoxLayout(self)
         layout.addWidget(self.tabWidget)
@@ -155,21 +77,18 @@ class PatientInterface(QWidget):
         self.appointment_list = QListWidget()
         self.appointment_list.itemClicked.connect(self.show_appointment_details)
 
-        self.database2 = Database()
-        appointments = self.database2.fetch_appointments(self.user_id)
-        if not appointments:
-            QMessageBox.critical(self, 'Database Error', 'Failed to fetch appointments.')
-            return widget
+        appointments = self.database.fetch_patient_appointments(self.patient_id)
 
-        for time, description, status in appointments:
-            if status == "approved":
-                color = "\U0001F7E2"  # Green
-            elif status == "declined":
-                color = "\U0001F534"  # Red
-            else:
-                color = "\U0001F7E1"  # Yellow
-            item = QListWidgetItem(f"{color} Time: {time} - Appointment: {description}")
-            self.appointment_list.addItem(item)
+        if appointments is not None:
+            for time, description, status in appointments:
+                if status == "approved":
+                    color = "\U0001F7E2"  # Green
+                elif status == "declined":
+                    color = "\U0001F534"  # Red
+                else:
+                    color = "\U0001F7E1"  # Yellow
+                item = QListWidgetItem(f"{color} Time: {time} - Appointment: {description}")
+                self.appointment_list.addItem(item)
 
         layout.addWidget(self.appointment_list)
 
@@ -187,21 +106,19 @@ class PatientInterface(QWidget):
         return widget
 
     def createPersonalInfoPage(self):
-        self.database2 = Database()
         widget = QWidget()
-        formLayout = QFormLayout()
+        layout = QFormLayout()
 
-        name, age = self.database2.fetch_personal_info(self.user_id)
-
-        self.name_edit = QLineEdit(name if name is not None else '')
+        nameLabel = QLabel(self.patient_name if self.patient_name is not None else '')
+        ageLabel = QLabel(self.patient_birth.strftime("%Y-%m-%d") if self.patient_birth is not None else '')
+        self.username_edit = QLineEdit(self.username if self.username is not None else '')
+        self.password_edit = QLineEdit('')
         # datum prepocet
-        self.age_edit = QLineEdit(str(age) if age is not None else '')
+        # self.age_edit = QLineEdit(str(self.patient_birth) if self.patient_birth is not None else '')
 
         self.update_name_btn = QPushButton('Update personal info')
         self.update_name_btn.clicked.connect(self.update_personal_info)
         self.load_picture_btn = QPushButton('Add/Change Picture')
-
-
 
         # Creating a horizontal layout to center buttons
         update_btn_layout = QHBoxLayout()
@@ -220,30 +137,34 @@ class PatientInterface(QWidget):
         #     pixmap = QPixmap(current_picture_path)
         #     self.picture_label.setPixmap(pixmap.scaled(100, 100, Qt.KeepAspectRatio))
 
-        formLayout.addRow("Name:", self.name_edit)
-        formLayout.addRow("Age:", self.age_edit)
-        formLayout.addRow(update_btn_layout)
+        layout.addRow("Name:", nameLabel)
+        layout.addRow("Age:", ageLabel)
+        layout.addRow("Username:", self.username_edit)
+        layout.addRow("New password:", self.password_edit)
+        layout.addRow(update_btn_layout)
         # formLayout.addRow(self.picture_label)
-        formLayout.addRow(picture_btn_layout)
+        layout.addRow(picture_btn_layout)
 
-        widget.setLayout(formLayout)
+        widget.setLayout(layout)
         return widget
 
     def update_personal_info(self):
-        self.database2 = Database()
+        new_username = self.username_edit.text()
+        new_password = self.password_edit.text()
+        if new_username is None or new_username == '' or new_password is None or new_password == '':
+            QMessageBox.warning(self, 'Invalid Input', 'Please enter valid non empty username and password.')
+            return
+        self.username = new_username
+        password = sha256(new_password.encode()).hexdigest()
 
-
-        new_name = self.name_edit.text()
-        new_age = self.age_edit.text()
-        if new_name and new_age:  # Simple validation
-            try:
-                self.database2.update_personal_info(self.user_id, new_name, new_age)
-                QMessageBox.information(self, 'Update Successful',
-                                        'Your personal information has been updated successfully!')
-            except Exception as e:
-                QMessageBox.critical(self, 'Update Failed', 'Failed to update personal information.\n' + str(e))
-        else:
-            QMessageBox.warning(self, 'Invalid Input', 'Please enter valid name and age.')
+        try:
+            self.database.update_login_credentials((self.username, password, self.patient_id))
+            QMessageBox.information(self, 'Update Successful',
+                                    'Your personal information has been updated successfully!')
+        except Exception as e:
+            QMessageBox.critical(self, 'Update Failed', 'Failed to update personal information.\n' + str(e))
+        # else:
+        #     QMessageBox.warning(self, 'Invalid Input', 'Please enter valid name and age.')
 
 
     # asi by to melo ukladat do filu projektu
@@ -253,10 +174,8 @@ class PatientInterface(QWidget):
         if file_name:
             pixmap = QPixmap(file_name)
             print(file_name)
-            self.database2 = Database()
 
-
-            self.database2.update_picture(self.user_id, file_name)
+            self.database.update_patient_picture(self.patient_id, file_name)
             QMessageBox.information(self, 'Picture Updated', 'Your picture has been updated successfully!')
 
             #¯\_(ツ)_/¯
@@ -271,12 +190,12 @@ class PatientInterface(QWidget):
 
         self.medical_history_list = QListWidget()
 
-        medical_events = self.database2.fetch_medical_history(self.user_id)
-        if not medical_events:
+        medical_records = self.database.fetch_patient_medical_records(self.patient_id)
+        if medical_records is None:
             QMessageBox.critical(self, 'Database Error', 'Failed to fetch medical history.')
             return widget
 
-        for event in medical_events:
+        for event in medical_records:
             date, description = event
             item = QListWidgetItem(f"Date: {date} - Event: {description}")
             self.medical_history_list.addItem(item)
@@ -292,7 +211,6 @@ class PatientInterface(QWidget):
         layout.addLayout(history_btn_layout)
         self.reload_medical_history()
 
-
         self.update_history_btn.clicked.connect(self.update_medical_history)
 
         return widget
@@ -300,15 +218,13 @@ class PatientInterface(QWidget):
     def reload_medical_history(self):
         self.medical_history_list.clear()  # Clear existing items
 
-        medical_events = self.database2.fetch_medical_history(self.user_id)
-        if medical_events:
-            for event in medical_events:
-                date, description = event
+        medical_records = self.database.fetch_patient_medical_records(self.patient_id)
+        if medical_records is None:
+            QMessageBox.critical(self, 'Database Error', 'Failed to fetch medical history.')
+        else:
+            for date, description in medical_records:
                 item = QListWidgetItem(f"Date: {date} - Event: {description}")
                 self.medical_history_list.addItem(item)
-        else:
-            QMessageBox.critical(self, 'Database Error', 'Failed to fetch medical history.')
-
 
     def update_medical_history(self):
         # Creating a dialog for entering new medical history
@@ -331,11 +247,9 @@ class PatientInterface(QWidget):
         self.history_dialog.exec_()
 
     def submit_medical_history(self):
-        self.database2 = Database()
 
         new_history = self.medical_history_text.toPlainText()
         if new_history.strip():
-
             self.database2.insert_medical_record(self.user_id, new_history)
             self.reload_medical_history()
 
@@ -386,6 +300,10 @@ class PatientInterface(QWidget):
         self.minute_combo = QComboBox()
         self.minute_combo.addItems([f"{i:02}" for i in range(0, 60, 15)])
         layout.addWidget(self.minute_combo)
+        info_label = QLabel("Appointment info:")
+        layout.addWidget(info_label)
+        self.appointment_info = QLineEdit()
+        layout.addWidget(self.appointment_info)
 
         select_btn = QPushButton('Select Date and Time')
         select_btn.clicked.connect(self.add_appointment)
@@ -400,8 +318,9 @@ class PatientInterface(QWidget):
         selected_hour = self.hour_combo.currentText()
         selected_minute = self.minute_combo.currentText()
         selected_time = f"{selected_hour}:{selected_minute}"
-        appointment_details = self.appointment_info.toPlainText()
-        full_details = f"{appointment_details} on {selected_date} at {selected_time}"
-        self.database.add_appointment((self.user_id, full_details, selected_date, selected_time))
+        selected_datetime = selected_date + " " + selected_time + ":00"
+        full_details = f"{self.appointment_info.text()} on {selected_date} at {selected_time}"
+        print(full_details)
+        self.database.add_appointment((self.patient_id, full_details, selected_datetime, "waiting"))
         QMessageBox.information(self, 'Appointment Added', 'Your appointment has been added successfully!')
         self.calendar_dialog.close()

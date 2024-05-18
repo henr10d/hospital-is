@@ -41,7 +41,7 @@ CREATE TABLE appointments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     patient_id INT,
     doctor_id INT,
-    appointment_details TEXT,
+    details TEXT,
     appointment_time DATETIME,
     status ENUM('waiting', 'approved', 'declined') NOT NULL,
     FOREIGN KEY (patient_id) REFERENCES patients(patient_id),
