@@ -6,7 +6,7 @@ CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(255) NOT NULL,
     password VARCHAR(255) NOT NULL,
-    role ENUM('doctor', 'patient') NOT NULL,
+    role ENUM('doctor', 'patient') NOT NULL
 );
 
 CREATE TABLE doctors (
@@ -25,13 +25,13 @@ CREATE TABLE patients (
     name VARCHAR(255),
     birth DATETIME,
     insurance VARCHAR(255),
-    FOREIGN KEY (patient_id) REFERENCES users(id)
+    FOREIGN KEY (patient_id) REFERENCES users(id),
     FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id)
 );
 
 CREATE TABLE medical_history (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT,
+    patient_id INT,
     details TEXT,
     appointment_time DATETIME,
     FOREIGN KEY (patient_id) REFERENCES patients(patient_id)
@@ -44,6 +44,6 @@ CREATE TABLE appointments (
     appointment_details TEXT,
     appointment_time DATETIME,
     status ENUM('waiting', 'approved', 'declined') NOT NULL,
-    FOREIGN KEY (patient_id) REFERENCES patients(patient_id)
+    FOREIGN KEY (patient_id) REFERENCES patients(patient_id),
     FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id)
 );
