@@ -195,8 +195,8 @@ class DatabaseCommunicator:
         :return: None
         """
         statement = """
-                    INSERT INTO appointments (patient_id, doctor_id, details, appointment_time, status)
-                    VALUES (%s, %s, %s, %s, waiting);
+                    INSERT INTO appointments (patient_id, details, appointment_time, status)
+                    VALUES (%s, %s, %s, %s);
                     """
         self.database_query(statement, params, True)
 

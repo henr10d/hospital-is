@@ -320,7 +320,7 @@ class PatientInterface(QWidget):
         selected_time = f"{selected_hour}:{selected_minute}"
         selected_datetime = selected_date + " " + selected_time + ":00"
         full_details = f"{self.appointment_info.text()} on {selected_date} at {selected_time}"
-        print( full_details)
-        self.database.add_appointment((self.patient_id, self.doctor_id, full_details, selected_datetime))
+        print(full_details)
+        self.database.add_appointment((self.patient_id, full_details, selected_datetime, "waiting"))
         QMessageBox.information(self, 'Appointment Added', 'Your appointment has been added successfully!')
         self.calendar_dialog.close()
