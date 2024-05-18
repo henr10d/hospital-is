@@ -200,6 +200,18 @@ class DatabaseCommunicator:
                     """
         self.database_query(statement, params, True)
 
+    def cancel_appointment(self, params):
+        """
+        Method for adding an appointment with a doctor
+        :param params: parameters of the appointment
+        :return: None
+        """
+        statement = """
+                    DELETE FROM appointments
+                    WHERE id = %s
+                    """
+        self.database_query(statement, params, True)
+
     def fetch_patient_appointments(self, patient_id):
         """
         Method that fetches the medical history of patient with user_id
