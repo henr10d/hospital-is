@@ -113,7 +113,7 @@ class DoctorInterface(QWidget):
         layout.addWidget(self.tabWidget)
 
     def loadAppointments(self):
-        # self.appointment_list.clear()  # Clear existing items before loading new ones
+        self.appointment_list.clear()  # Clear existing items before loading new ones
         # self.database2 = Database()
 
         # doctor_id = self.database2.get_doctor_id_by_user_id(self.user_id)
@@ -123,8 +123,8 @@ class DoctorInterface(QWidget):
 
         # appointments = self.database2.fetch_appointments_for_doctor(doctor_id)
 
-        appointments = self.database2.fetch_appointments_for_doctor(doctor_id)
-        if not appointments:
+        appointments = self.database.fetch_doctor_appointments(self.doctor_id)
+        if appointments is None:
             QMessageBox.critical(self, 'Database Error', 'Failed to fetch appointments.')
             return
 
@@ -164,7 +164,7 @@ class DoctorInterface(QWidget):
                                         f"Do you want to change the appointment status to {'Approved' if new_status == 'approved' else 'Declined'}?",
                                         QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if response == QMessageBox.Yes:
-            # self.database.update_appointment_status(appointment_id, new_status)
+            self.database.update_appointment_status(appointment_id, new_status)
             QMessageBox.information(self, 'Status Updated',
                                     f'Appointment status has been changed to {"Approved" if new_status == "approved" else "Declined"}.')
             # Refresh the list or update the item directly here to show new status
@@ -219,23 +219,42 @@ class DoctorInterface(QWidget):
         layout = QVBoxLayout(widget)
         self.patients_list = QListWidget()
         # rewrite to take from db
-        self.patients_list.addItem("John Doe, Flu")
-        self.patients_list.addItem("Jane Smith, Cold")
+        # self.patients_list.addItem("John Doe, Flu")
+        # self.patients_list.addItem("Jane Smith, Cold")
+        self.loadPatients();
         self.patients_list.itemClicked.connect(self.patientClicked)
         layout.addWidget(self.patients_list)
 
-        self.addPatientButton = QPushButton("Add Patient")
-        layout.addWidget(self.addPatientButton)
+        # self.addPatientButton = QPushButton("Add Patient")
+        # layout.addWidget(self.addPatientButton)
 
         widget.setLayout(layout)
         return widget
 
+    def loadPatients(self):
+        self.patients_list.clear()
+        patients = self.database.fetch_NULL_patients()
+        if patients is None:
+            QMessageBox.critical(self, 'Database Error', 'Failed to fetch appointments.')
+            return
+
+        for patient_id, name, birth, insurance in patients:
+            date = birth.strftime("%Y-%m-%d")
+            item_text = f"{name} Born: {date}, Insurance company: {insurance}"
+            item = QListWidgetItem(item_text)
+            item.setData(Qt.UserRole, (patient_id, name))  # Store appointment ID and current status
+            self.patients_list.addItem(item)
+
     def patientClicked(self, item):
-        response = QMessageBox.question(self, 'Delete Patient',
-                                        f"Do you want to delete {item.text()}?",
+        patient_id, name = item.data(Qt.UserRole)
+        response = QMessageBox.question(self, 'Add Patient',
+                                        f"Do you want to add {name} to your patients?",
                                         QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if response == QMessageBox.Yes:
-            print("Delete patient functionality goes here.")
+            # print("Delete patient functionality goes here.")
+            self.database.add_doctor_to_patient(patient_id, self.doctor_id)
+            self.loadPatients()
+            self.loadAppointments()
             # db
 
     # patent picker
@@ -270,7 +289,6 @@ class DoctorInterface(QWidget):
                                 f'Appointment status has been changed to {"Approved" if new_status == "approved" else "Declined"}.')
         self.loadAppointments()
         # add page refres
-
 
     def addAppointment(self):
         print("Add appointment functionality goes here.")
