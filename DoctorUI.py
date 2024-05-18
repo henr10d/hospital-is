@@ -2,6 +2,8 @@ import mysql
 # from PyQt5 import Qt
 from PyQt5.QtCore import Qt
 
+from DatabaseComms import DatabaseCommunicator
+
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QListWidget, QPushButton, QMessageBox, QTabWidget, QFormLayout, \
     QLineEdit, QLabel, QHBoxLayout, QSpacerItem, QSizePolicy, QListWidgetItem
 
@@ -14,6 +16,7 @@ class Database:
             password='filip',
             database='HospitalApp'
         )
+
         self.cursor = self.connection.cursor()
 
     def update_picture(self, user_id, image_path):
@@ -57,9 +60,13 @@ class Database:
 
 
 class DoctorInterface(QWidget):
-    def __init__(self, user_id, database):
-        self.user_id = user_id
+    def __init__(self, doctor, database: DatabaseCommunicator, username):
+        self.doctor_id = doctor[0]
+        self.patient_name = doctor[2]
+        self.patient_birth = doctor[3]
+        self.insurance = doctor[4]
         self.database = database
+        self.username = username
         super().__init__()
         self.setWindowTitle('Doctor Dashboard')
         self.setGeometry(400, 400, 1280, 800)
@@ -109,16 +116,17 @@ class DoctorInterface(QWidget):
         layout.addWidget(self.tabWidget)
 
     def loadAppointments(self):
-        self.appointment_list.clear()  # Clear existing items before loading new ones
-        self.database2 = Database()
+        # self.appointment_list.clear()  # Clear existing items before loading new ones
+        # self.database2 = Database()
 
-        doctor_id = self.database2.get_doctor_id_by_user_id(self.user_id)
-        if not doctor_id:
-            QMessageBox.critical(self, 'Database Error', 'Failed to find associated doctor ID.')
-            return
+        # doctor_id = self.database2.get_doctor_id_by_user_id(self.user_id)
+        # if not doctor_id:
+        #     QMessageBox.critical(self, 'Database Error', 'Failed to find associated doctor ID.')
+        #     return
 
-        appointments = self.database2.fetch_appointments_for_doctor(doctor_id)
-        if not appointments:
+        # appointments = self.database2.fetch_appointments_for_doctor(doctor_id)
+        appointments = self.database.fetch_doctor_appointments(self.doctor_id)
+        if appointments is None:
             QMessageBox.critical(self, 'Database Error', 'Failed to fetch appointments.')
             return
 
@@ -256,9 +264,10 @@ class DoctorInterface(QWidget):
             return  # Do nothing if Cancel is clicked
 
         # Update the appointment status in the database
-        self.database2 = Database()
+        # self.database2 = Database()
 
-        self.database2.update_appointment_status(appointment_id, new_status)
+        # self.database2.update_appointment_status(appointment_id, new_status)
+        self.database.update_appointment_status((new_status, appointment_id))
 
         QMessageBox.information(self, 'Status Updated',
                                 f'Appointment status has been changed to {"Approved" if new_status == "approved" else "Declined"}.')

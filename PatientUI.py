@@ -250,7 +250,7 @@ class PatientInterface(QWidget):
 
         new_history = self.medical_history_text.toPlainText()
         if new_history.strip():
-            self.database2.insert_medical_record(self.user_id, new_history)
+            self.database.add_medical_record((new_history, self.patient_id))
             self.reload_medical_history()
 
             QMessageBox.information(self, 'Update Successful', 'Your medical history has been updated!')

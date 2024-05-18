@@ -185,7 +185,7 @@ class DatabaseCommunicator:
         :param params: parameters of the medical record
         :return: None
         """
-        statement = "INSERT INTO medical_history (details, patient_id, appointment_time) VALUES (%s, %s, %s)"
+        statement = "INSERT INTO medical_history (details, patient_id) VALUES (%s, %s)"
         self.database_query(statement, params, True)
 
     def add_appointment(self, params):
@@ -221,27 +221,21 @@ class DatabaseCommunicator:
        :return: the medical history of the patient or None if the user has
        no medical history
        """
-        statement = "SELECT * FROM appointments WHERE doctor_id = %s"
+        statement = ("SELECT patient_id, appointment_time, details, status "
+                     "FROM appointments "
+                     "WHERE doctor_id = %s "
+                     "ORDER BY appointment_time DESC")
         result = self.database_query(statement, (doctor_id,), False)
         return result
 
-    def approve_appointment(self, appointment_id):
-        """
-       Method that approves appointment with appointment_id
-       :param appointment_id: id of the appointment to be approved
-       :return: None
-       """
-        statement = "UPDATE appointments SET status = %s WHERE id = %s"
-        self.database_query(statement, ("approved", appointment_id), True)
-
-    def decline_appointment(self, appointment_id):
+    def update_appointment_status(self, params):
         """
        Method that approves declines with appointment_id
-       :param appointment_id: id of the appointment to be declined
+       :param params: id of appointment and new status
        :return: None
        """
         statement = "UPDATE appointments SET status = %s WHERE id = %s"
-        self.database_query(statement, ("declined", appointment_id), True)
+        self.database_query(statement, params, True)
 
     def update_personal_info(self, params):
         """
