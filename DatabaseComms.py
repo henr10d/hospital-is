@@ -168,9 +168,7 @@ class DatabaseCommunicator:
                      "WHERE patient_id = %s "
                      "ORDER BY appointment_time DESC")
         result = self.database_query(statement, (patient_id,), False)
-        if result is not None:
-            return result
-        return None
+        return result
 
     def update_medical_record(self, params):
         """
@@ -212,9 +210,7 @@ class DatabaseCommunicator:
                      "WHERE patient_id = %s "
                      "ORDER BY appointment_time DESC")
         result = self.database_query(statement, (patient_id,), False)
-        if result is not None:
-            return result
-        return None
+        return result
 
     def fetch_doctor_appointments(self, doctor_id):
         """
@@ -225,9 +221,7 @@ class DatabaseCommunicator:
        """
         statement = "SELECT * FROM appointments WHERE doctor_id = %s"
         result = self.database_query(statement, (doctor_id,), False)
-        if result is not None:
-            return result
-        return None
+        return result
 
     def approve_appointment(self, appointment_id):
         """
@@ -247,13 +241,13 @@ class DatabaseCommunicator:
         statement = "UPDATE appointments SET status = %s WHERE id = %s"
         self.database_query(statement, ("declined", appointment_id), True)
 
-    def patient_update_personal_info(self, params):
+    def update_personal_info(self, params):
         """
         Method to update the personal information of a patient
         :param params: new name and age and id of the patient
         :return: None
         """
-        statement = "UPDATE patients SET name = %s, birth = %s WHERE patient_id = %s"
+        statement = "UPDATE patients SET name = %s WHERE patient_id = %s"
         self.database_query(statement, params, True)
 
     def update_patient_picture(self, patient_id, image_path):
@@ -277,3 +271,14 @@ class DatabaseCommunicator:
         if result is not None:
             return result[0]
         return None
+
+    def get_login_credentials(self, user_id):
+        statement = "SELECT username, password FROM users WHERE id = %s"
+        result = self.database_query(statement, (user_id,), False)
+        if result is not None:
+            return result[0]
+        return None
+
+    def update_login_credentials(self, params):
+        statement = "UPDATE users SET username = %s, password = %s WHERE id = %s"
+        self.database_query(statement, params, True)
