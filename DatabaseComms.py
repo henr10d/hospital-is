@@ -196,9 +196,11 @@ class DatabaseCommunicator:
         :param params: parameters of the appointment
         :return: None
         """
-        statement = ("INSERT INTO appointments (patient_id, doctor_id, details,"
-                     " appointment_time, status) VALUES (%s, %s, %s, %s, %s))")
-        self.database_query(statement, params + ("waiting", ), True)
+        statement = """
+                    INSERT INTO appointments (patient_id, doctor_id, details, appointment_time, status)
+                    VALUES (%s, %s, %s, %s, waiting);
+                    """
+        self.database_query(statement, params, True)
 
     def fetch_patient_appointments(self, patient_id):
         """

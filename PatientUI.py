@@ -16,6 +16,7 @@ class PatientInterface(QWidget):
     def __init__(self, patient, database: DatabaseCommunicator):
         super().__init__()
         self.patient_id = patient[0]
+        self.doctor_id = patient[1]
         self.patient_name = patient[3]
         self.patient_birth = patient[4]
         self.insurance = patient[5]
@@ -64,7 +65,7 @@ class PatientInterface(QWidget):
         self.tabWidget = QTabWidget()
         self.tabWidget.addTab(self.createPersonalInfoPage(), "Personal Info")
         self.tabWidget.addTab(self.createMedicalHistoryPage(), "Medical History")
-        self.tabWidget.addTab(self.createAppointmentPage(), "Set Appointment")
+        self.tabWidget.addTab(self.createAppointmentPage(), "Appointments")
 
         layout = QVBoxLayout(self)
         layout.addWidget(self.tabWidget)
@@ -77,22 +78,18 @@ class PatientInterface(QWidget):
         self.appointment_list = QListWidget()
         self.appointment_list.itemClicked.connect(self.show_appointment_details)
 
-        # self.database2 = Database()
-        # appointments = self.database2.fetch_appointments(self.patient_id)
         appointments = self.database.fetch_patient_appointments(self.patient_id)
-        if appointments is None:
-            QMessageBox.critical(self, 'Database Error', 'Failed to fetch appointments.')
-            return widget
 
-        for time, description, status in appointments:
-            if status == "approved":
-                color = "\U0001F7E2"  # Green
-            elif status == "declined":
-                color = "\U0001F534"  # Red
-            else:
-                color = "\U0001F7E1"  # Yellow
-            item = QListWidgetItem(f"{color} Time: {time} - Appointment: {description}")
-            self.appointment_list.addItem(item)
+        if appointments is not None:
+            for time, description, status in appointments:
+                if status == "approved":
+                    color = "\U0001F7E2"  # Green
+                elif status == "declined":
+                    color = "\U0001F534"  # Red
+                else:
+                    color = "\U0001F7E1"  # Yellow
+                item = QListWidgetItem(f"{color} Time: {time} - Appointment: {description}")
+                self.appointment_list.addItem(item)
 
         layout.addWidget(self.appointment_list)
 
@@ -308,6 +305,10 @@ class PatientInterface(QWidget):
         self.minute_combo = QComboBox()
         self.minute_combo.addItems([f"{i:02}" for i in range(0, 60, 15)])
         layout.addWidget(self.minute_combo)
+        info_label = QLabel("Appointment info:")
+        layout.addWidget(info_label)
+        self.appointment_info = QLineEdit()
+        layout.addWidget(self.appointment_info)
 
         select_btn = QPushButton('Select Date and Time')
         select_btn.clicked.connect(self.add_appointment)
@@ -322,8 +323,9 @@ class PatientInterface(QWidget):
         selected_hour = self.hour_combo.currentText()
         selected_minute = self.minute_combo.currentText()
         selected_time = f"{selected_hour}:{selected_minute}"
-        appointment_details = self.appointment_info.toPlainText()
-        full_details = f"{appointment_details} on {selected_date} at {selected_time}"
-        self.database.add_appointment((self.user_id, full_details, selected_date, selected_time))
+        selected_datetime = selected_date + " " + selected_time + ":00"
+        full_details = f"{self.appointment_info.text()} on {selected_date} at {selected_time}"
+        print( full_details)
+        self.database.add_appointment((self.patient_id, self.doctor_id, full_details, selected_datetime))
         QMessageBox.information(self, 'Appointment Added', 'Your appointment has been added successfully!')
         self.calendar_dialog.close()
