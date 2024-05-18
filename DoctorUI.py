@@ -4,56 +4,8 @@ from PyQt5.QtCore import Qt
 from hashlib import sha256
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QListWidget, QPushButton, QMessageBox, QTabWidget, QFormLayout, \
-    QLineEdit, QLabel, QHBoxLayout, QSpacerItem, QSizePolicy, QListWidgetItem
+    QLineEdit, QLabel, QHBoxLayout, QSpacerItem, QSizePolicy, QListWidgetItem, QDialog, QDialogButtonBox
 
-
-class Database:
-    def __init__(self):
-        self.connection = mysql.connector.connect(
-            host='localhost',
-            user='root',
-            password='1234',
-            database='HospitalApp'
-        )
-        self.cursor = self.connection.cursor()
-
-    def update_picture(self, user_id, image_path):
-        query = "UPDATE users SET image_path = %s WHERE id = %s"
-        self.cursor.execute(query, (image_path, user_id))
-        self.connection.commit()
-
-
-    def get_doctor_id_by_user_id(self, user_id):
-        query = "SELECT doctor_id FROM doctors WHERE user_id = %s"
-        try:
-            self.cursor.execute(query, (user_id,))
-            result = self.cursor.fetchone()
-            return result[0] if result else None
-        except Exception as e:
-            print("Error fetching doctor_id:", e)
-            return None
-
-    def fetch_appointments_for_doctor(self, doctor_id):
-        query = """
-        SELECT patient_id, appointment_time, appointment_details, status 
-        FROM appointments 
-        WHERE doctor_id = %s
-        ORDER BY appointment_time DESC
-        """
-        try:
-            self.cursor.execute(query, (doctor_id,))
-            return self.cursor.fetchall()
-        except Exception as e:
-            print("Error fetching appointments:", e)
-            return []
-
-    def update_appointment_status(self, id, new_status):
-        query = "UPDATE appointments SET status = %s WHERE id = %s"
-        try:
-            self.cursor.execute(query, (new_status, id))
-            self.connection.commit()
-        except Exception as e:
-            print("Error updating appointment status:", e)
 
 class DoctorInterface(QWidget):
     def __init__(self, doctor, database, username):
@@ -106,6 +58,7 @@ class DoctorInterface(QWidget):
         self.tabWidget.addTab(self.createPatientsPage(), "Patients")
         self.tabWidget.addTab(self.createAppointmentsPage(), "Appointments")
         self.tabWidget.addTab(self.createPersonalInfoPage(), "Personal Info")
+        self.tabWidget.addTab(self.createAcceptedPatientsPage(), "Accepted patients")
 
 
         layout = QVBoxLayout(self)
@@ -139,7 +92,6 @@ class DoctorInterface(QWidget):
             item.setData(Qt.UserRole, (appointment_id, status))  # Store appointment ID and current status
             self.appointment_list.addItem(item)
 
-
     def createAppointmentsPage(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
@@ -155,6 +107,68 @@ class DoctorInterface(QWidget):
 
         return widget
 
+    def addMedicine(self, item):
+        patient_id, name = item.data(Qt.UserRole)
+
+        details_dialog = QDialog(self)
+        details_dialog.setWindowTitle('Prescribe Medicine')
+        layout = QVBoxLayout(details_dialog)
+
+        label = QLabel(f"Medicine to be prescribed for patient: {name}")
+        layout.addWidget(label)
+
+        med_name = QLineEdit(details_dialog)
+        med_name.setPlaceholderText("Enter the name of the medicine")
+        layout.addWidget(med_name)
+
+        med_desc = QLineEdit(details_dialog)
+        med_desc.setPlaceholderText("Describe the usage of the medicine")
+        layout.addWidget(med_desc)
+
+        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Close)
+        button_box.accepted.connect(details_dialog.accept)
+        button_box.rejected.connect(details_dialog.reject)
+        layout.addWidget(button_box)
+
+        # Ensure the medicine is inserted and dialog is closed when Apply is clicked
+        button_box.button(QDialogButtonBox.Ok).clicked.connect(lambda: self.insert_medicine(item, med_name, med_desc))
+
+        details_dialog.setLayout(layout)
+        details_dialog.exec_()
+
+    def insert_medicine(self, item, med_name, med_desc):
+        patient_id, name = item.data(Qt.UserRole)
+        medicine = med_name.text()
+        description = med_desc.text()
+        self.database.prescribe_medicine(patient_id, self.doctor_id, medicine, description)
+        QMessageBox.information(self, 'Medicine prescribed',
+                                f'You have successfully prescribed {medicine} for patient {name}')
+
+    def createAcceptedPatientsPage(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        self.acceptedPatientsList = QListWidget()
+        self.acceptedPatientsList.itemClicked.connect(self.addMedicine)  # Connect the signal to a method
+        self.loadAcceptedPatients()
+        layout.addWidget(self.acceptedPatientsList)
+
+        widget.setLayout(layout)
+        return widget
+
+    def loadAcceptedPatients(self):
+        self.acceptedPatientsList.clear()
+        patients = self.database.fetch_accepted_patients(self.doctor_id)
+        if patients is None:
+            QMessageBox.critical(self, 'Database Error', 'Failed to fetch appointments.')
+            return
+
+        for patient_id, name, birth, insurance in patients:
+            date = birth.strftime("%Y-%m-%d")
+            item_text = f"{name} Born: {date}, Insurance company: {insurance}"
+            item = QListWidgetItem(item_text)
+            item.setData(Qt.UserRole, (patient_id, name))  # Store appointment ID and current status
+            self.acceptedPatientsList.addItem(item)
 
     def appointmentClicked(self, item):
         appointment_id, current_status = item.data(Qt.UserRole)
@@ -241,7 +255,7 @@ class DoctorInterface(QWidget):
         # rewrite to take from db
         # self.patients_list.addItem("John Doe, Flu")
         # self.patients_list.addItem("Jane Smith, Cold")
-        self.loadPatients()
+        self.loadNullPatients()
         self.patients_list.itemClicked.connect(self.patientClicked)
         layout.addWidget(self.patients_list)
 
@@ -251,7 +265,7 @@ class DoctorInterface(QWidget):
         widget.setLayout(layout)
         return widget
 
-    def loadPatients(self):
+    def loadNullPatients(self):
         self.patients_list.clear()
         patients = self.database.fetch_NULL_patients()
         if patients is None:

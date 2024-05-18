@@ -49,7 +49,9 @@ CREATE TABLE appointments (
 );
 
 CREATE TABLE drugs (
-    name TEXT PRIMARY KEY,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name TEXT,
+    details TEXT,
     patient_id INT,
     doctor_id INT,
     FOREIGN KEY (patient_id) REFERENCES patients(patient_id),

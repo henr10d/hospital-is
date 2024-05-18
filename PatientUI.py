@@ -1,3 +1,4 @@
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (QWidget, QLineEdit, QPushButton, QLabel, QMessageBox,
                              QTextEdit, QTabWidget, QFormLayout, QFileDialog, QComboBox, QHBoxLayout, QSpacerItem,
@@ -7,7 +8,10 @@ from PyQt5.QtWidgets import QCalendarWidget, QDialog, QVBoxLayout
 from PyQt5.QtCore import QDate
 from hashlib import sha256
 
+from datetime import datetime
+
 from DatabaseComms import DatabaseCommunicator
+
 
 class PatientInterface(QWidget):
 
@@ -65,12 +69,12 @@ class PatientInterface(QWidget):
         self.tabWidget.addTab(self.createPersonalInfoPage(), "Personal Info")
         self.tabWidget.addTab(self.createMedicalHistoryPage(), "Medical History")
         self.tabWidget.addTab(self.createAppointmentPage(), "Appointments")
+        self.tabWidget.addTab(self.create_medicine_page(), "Prescriptions")
 
         layout = QVBoxLayout(self)
         layout.addWidget(self.tabWidget)
 
     def createAppointmentPage(self):
-
         widget = QWidget()
         layout = QVBoxLayout(widget)
 
@@ -80,7 +84,7 @@ class PatientInterface(QWidget):
         appointments = self.database.fetch_patient_appointments(self.patient_id)
 
         if appointments is not None:
-            for _, time, description, status in appointments:
+            for appointment_id, time, description, status in appointments:
                 if status == "approved":
                     color = "\U0001F7E2"  # Green
                 elif status == "declined":
@@ -88,6 +92,7 @@ class PatientInterface(QWidget):
                 else:
                     color = "\U0001F7E1"  # Yellow
                 item = QListWidgetItem(f"{color} Time: {time} - Appointment: {description}")
+                item.setData(Qt.UserRole, appointment_id)
                 self.appointment_list.addItem(item)
 
         layout.addWidget(self.appointment_list)
@@ -250,7 +255,7 @@ class PatientInterface(QWidget):
 
         new_history = self.medical_history_text.toPlainText()
         if new_history.strip():
-            self.database2.insert_medical_record(self.user_id, new_history)
+            self.database.add_medical_record((new_history, self.patient_id, datetime.now()))
             self.reload_medical_history()
 
             QMessageBox.information(self, 'Update Successful', 'Your medical history has been updated!')
@@ -278,7 +283,7 @@ class PatientInterface(QWidget):
         details_dialog.exec_()
 
     def cancel_appointment(self, item):
-        # hehe
+        self.database.cancel_appointment((item.data(Qt.UserRole), ))
         self.appointment_list.takeItem(self.appointment_list.row(item))
         QMessageBox.information(self, 'Appointment Cancelled', 'The appointment has been successfully cancelled!')
 
@@ -324,3 +329,53 @@ class PatientInterface(QWidget):
         self.database.add_appointment((self.patient_id, self.doctor_id, full_details, selected_datetime, "waiting"))
         QMessageBox.information(self, 'Appointment Added', 'Your appointment has been added successfully!')
         self.calendar_dialog.close()
+
+
+
+    def load_prescribed_drugs(self):
+        self.medicine_list.clear()
+        medicine = self.database.fetch_patient_medicine(self.patient_id)
+        if medicine is None:
+            QMessageBox.critical(self, 'Database Error', 'Failed to fetch appointments.')
+            return
+
+        for drug_id, name, description in medicine:
+            item = QListWidgetItem(f"{name} - {description}")
+            item.setData(Qt.UserRole, (drug_id, name))
+            self.medicine_list.addItem(item)
+
+    def create_medicine_page(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        self.medicine_list = QListWidget()
+        self.load_prescribed_drugs()
+        self.medicine_list.itemClicked.connect(self.show_prescription_details)
+        layout.addWidget(self.medicine_list)
+
+        return widget
+
+    def show_prescription_details(self, item):
+        details_dialog = QDialog(self)
+        details_dialog.setWindowTitle('Prescription Details')
+        layout = QVBoxLayout(details_dialog)
+
+        _, name = item.data(Qt.UserRole)
+
+        label = QLabel(f"Details for the selected prescription {name}:\n{item.text()}")
+        layout.addWidget(label)
+
+        button_box = QDialogButtonBox(QDialogButtonBox.Cancel | QDialogButtonBox.Close)
+        button_box.accepted.connect(details_dialog.accept)
+        button_box.rejected.connect(details_dialog.reject)
+        layout.addWidget(button_box)
+
+        button_box.button(QDialogButtonBox.Cancel).clicked.connect(lambda: self.cancel_prescription(item))
+
+        details_dialog.setLayout(layout)
+        details_dialog.exec_()
+        self.load_prescribed_drugs()
+
+    def cancel_prescription(self, item):
+        drug_id, _ = item.data(Qt.UserRole)
+        self.database.cancel_prescription(drug_id)

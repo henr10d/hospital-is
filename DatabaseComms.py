@@ -297,9 +297,30 @@ class DatabaseCommunicator:
         result = self.database_query(statement, None, False)
         return result
 
+    def fetch_accepted_patients(self, doctor_id):
+        statement = ("SELECT patient_id, name, birth, insurance "
+                     "FROM patients where doctor_id = %s")
+        result = self.database_query(statement, (doctor_id, ), False)
+        return result
+
     def add_doctor_to_patient(self, patient_id, doctor_id):
         statement = "UPDATE patients SET doctor_id = %s WHERE patient_id = %s"
         self.database_query(statement, (doctor_id, patient_id), True)
         statement = "UPDATE appointments SET doctor_id = %s WHERE patient_id = %s"
         self.database_query(statement, (doctor_id, patient_id), True)
 
+    def prescribe_medicine(self, patient_id, doctor_id, medicine, details):
+        statement = "INSERT INTO drugs (patient_id, doctor_id, name, details) VALUES (%s, %s, %s, %s);"
+        self.database_query(statement, (patient_id, doctor_id, medicine, details), True)
+
+    def fetch_patient_medicine(self, patient_id):
+        statement = "SELECT id, name, details FROM drugs where patient_id = %s"
+        result = self.database_query(statement, (patient_id,), False)
+        return result
+
+    def cancel_prescription(self, drug_id):
+        statement = """
+                    DELETE FROM drugs
+                    WHERE id = %s
+                    """
+        self.database_query(statement, (drug_id, ), True)
