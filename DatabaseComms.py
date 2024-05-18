@@ -195,8 +195,8 @@ class DatabaseCommunicator:
         :return: None
         """
         statement = """
-                    INSERT INTO appointments (patient_id, details, appointment_time, status)
-                    VALUES (%s, %s, %s, %s);
+                    INSERT INTO appointments (patient_id, doctor_id, details, appointment_time, status)
+                    VALUES (%s, %s, %s, %s, %s);
                     """
         self.database_query(statement, params, True)
 
@@ -277,3 +277,14 @@ class DatabaseCommunicator:
     def update_login_credentials(self, params):
         statement = "UPDATE users SET username = %s, password = %s WHERE id = %s"
         self.database_query(statement, params, True)
+
+    def fetch_NULL_patients(self):
+        statement = ("SELECT patient_id, name, birth, insurance "
+                     "FROM patients where doctor_id IS NULL")
+        result = self.database_query(statement, None, False)
+        return result
+
+    def add_doctor_to_patient(self, patient_id, doctor_id):
+        statement = "UPDATE patients SET doctor_id = %s WHERE patient_id = %s"
+        result = self.database_query(statement, (doctor_id, patient_id), True)
+        return result
