@@ -1,5 +1,59 @@
+import mysql
+# from PyQt5 import Qt
+from PyQt5.QtCore import Qt
+
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QListWidget, QPushButton, QMessageBox, QTabWidget, QFormLayout, \
-    QLineEdit, QLabel, QHBoxLayout, QSpacerItem, QSizePolicy
+    QLineEdit, QLabel, QHBoxLayout, QSpacerItem, QSizePolicy, QListWidgetItem
+
+
+class Database:
+    def __init__(self):
+        self.connection = mysql.connector.connect(
+            host='localhost',
+            user='root',
+            password='filip',
+            database='HospitalApp'
+        )
+        self.cursor = self.connection.cursor()
+
+    def update_picture(self, user_id, image_path):
+        query = "UPDATE users SET image_path = %s WHERE id = %s"
+        self.cursor.execute(query, (image_path, user_id))
+        self.connection.commit()
+
+
+    def get_doctor_id_by_user_id(self, user_id):
+        query = "SELECT doctor_id FROM doctors WHERE user_id = %s"
+        try:
+            self.cursor.execute(query, (user_id,))
+            result = self.cursor.fetchone()
+            return result[0] if result else None
+        except Exception as e:
+            print("Error fetching doctor_id:", e)
+            return None
+
+    def fetch_appointments_for_doctor(self, doctor_id):
+        query = """
+        SELECT patient_id, appointment_time, appointment_details, status 
+        FROM appointments 
+        WHERE doctor_id = %s
+        ORDER BY appointment_time DESC
+        """
+        try:
+            self.cursor.execute(query, (doctor_id,))
+            return self.cursor.fetchall()
+        except Exception as e:
+            print("Error fetching appointments:", e)
+            return []
+
+    def update_appointment_status(self, id, new_status):
+        query = "UPDATE appointments SET status = %s WHERE id = %s"
+        try:
+            self.cursor.execute(query, (new_status, id))
+            self.connection.commit()
+        except Exception as e:
+            print("Error updating appointment status:", e)
+
 
 
 class DoctorInterface(QWidget):
@@ -53,6 +107,62 @@ class DoctorInterface(QWidget):
 
         layout = QVBoxLayout(self)
         layout.addWidget(self.tabWidget)
+
+    def loadAppointments(self):
+        self.appointment_list.clear()  # Clear existing items before loading new ones
+        self.database2 = Database()
+
+        doctor_id = self.database2.get_doctor_id_by_user_id(self.user_id)
+        if not doctor_id:
+            QMessageBox.critical(self, 'Database Error', 'Failed to find associated doctor ID.')
+            return
+
+        appointments = self.database2.fetch_appointments_for_doctor(doctor_id)
+        if not appointments:
+            QMessageBox.critical(self, 'Database Error', 'Failed to fetch appointments.')
+            return
+
+        for appointment_id, appointment_time, appointment_details, status in appointments:
+            if status == "approved":
+                color = "\U0001F7E2"  # Green
+            elif status == "declined":
+                color = "\U0001F534"  # Red
+            else:
+                color = "\U0001F7E1"  # Yellow
+            item_text = f"{color} Time: {appointment_time} - Appointment: {appointment_details}"
+            item = QListWidgetItem(item_text)
+            item.setData(Qt.UserRole, (appointment_id, status))  # Store appointment ID and current status
+            self.appointment_list.addItem(item)
+
+
+    def createAppointmentsPage(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        self.appointment_list = QListWidget()
+        self.appointment_list.itemClicked.connect(self.appointmentClicked)  # Connect the signal to a method
+        layout.addWidget(self.appointment_list)
+
+        self.loadAppointments()  # Load the appointments into the list
+
+        legend_label = QLabel("🟢 Approved \U0001F7E1 Waiting 🔴 Declined")
+        layout.addWidget(legend_label)
+
+        return widget
+
+
+    def appointmentClicked(self, item):
+        appointment_id, current_status = item.data(Qt.UserRole)
+        new_status = 'approved' if current_status != 'approved' else 'declined'
+        response = QMessageBox.question(self, 'Change Appointment Status',
+                                        f"Do you want to change the appointment status to {'Approved' if new_status == 'approved' else 'Declined'}?",
+                                        QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if response == QMessageBox.Yes:
+            # self.database.update_appointment_status(appointment_id, new_status)
+            QMessageBox.information(self, 'Status Updated',
+                                    f'Appointment status has been changed to {"Approved" if new_status == "approved" else "Declined"}.')
+            # Refresh the list or update the item directly here to show new status
+        self.loadAppointments()
 
     def createPersonalInfoPage(self):
         widget = QWidget()
@@ -126,30 +236,35 @@ class DoctorInterface(QWidget):
     def addPatient(self):
         print("Add patient functionality goes here.")
 
-
-    def createAppointmentsPage(self):
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        self.appointments_list = QListWidget()
-        # rewrite to take from db name, time, date
-        self.appointments_list.addItem("John Doe at 10:00 AM")
-        self.appointments_list.addItem("Jane Smith at 11:00 AM")
-        self.appointments_list.itemClicked.connect(self.appointmentClicked)  # Connecting click event hehe
-        layout.addWidget(self.appointments_list)
-
-        self.addAppointmentButton = QPushButton("Add Appointment")
-        self.addAppointmentButton.clicked.connect(self.addAppointment)
-        layout.addWidget(self.addAppointmentButton)
-
-        widget.setLayout(layout)
-        return widget
-
     def appointmentClicked(self, item):
-        response = QMessageBox.question(self, 'Cancel Appointment',
-                                        f"Do you want to cancel the appointment for {item.text()}?",
-                                        QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        if response == QMessageBox.Yes:
-            print("Cancel appointment functionality goes here.")
+        appointment_id, current_status = item.data(Qt.UserRole)
+
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Change Appointment Status")
+        msg_box.setText("Choose the new status for this appointment:")
+        msg_box.addButton('Approve', QMessageBox.AcceptRole)
+        msg_box.addButton('Decline', QMessageBox.RejectRole)
+        msg_box.addButton(QMessageBox.Cancel)
+
+        result = msg_box.exec_()
+
+        if result == QMessageBox.AcceptRole:
+            new_status = 'approved'
+        elif result == QMessageBox.RejectRole:
+            new_status = 'declined'
+        else:
+            return  # Do nothing if Cancel is clicked
+
+        # Update the appointment status in the database
+        self.database2 = Database()
+
+        self.database2.update_appointment_status(appointment_id, new_status)
+
+        QMessageBox.information(self, 'Status Updated',
+                                f'Appointment status has been changed to {"Approved" if new_status == "approved" else "Declined"}.')
+        self.loadAppointments()
+        # add page refres
+
 
     def addAppointment(self):
         print("Add appointment functionality goes here.")

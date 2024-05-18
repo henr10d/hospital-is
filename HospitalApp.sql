@@ -43,7 +43,7 @@ CREATE TABLE appointments (
     doctor_id INT,
     appointment_details TEXT,
     appointment_time DATETIME,
-    status ENUM('waiting', 'approved') NOT NULL,
+    status ENUM('waiting', 'approved', 'declined') NOT NULL,
     FOREIGN KEY (patient_id) REFERENCES patients(patient_id)
     FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id)
 );

@@ -57,6 +57,39 @@ class Database:
             print("Error fetching personal info:", e)
             return None, None
 
+    def fetch_medical_history(self, patient_id):
+        try:
+            query = "SELECT appointment_time, details FROM medical_history WHERE patient_id = %s ORDER BY appointment_time DESC"
+            self.cursor.execute(query, (patient_id,))
+            return self.cursor.fetchall()
+        except Exception as e:
+            print(f"Error fetching medical history: {e}")
+            return None
+
+    def insert_medical_record(self, patient_id, new_history):
+        try:
+            query = "INSERT INTO medical_history (patient_id, details, appointment_time) VALUES (%s, %s, NOW())"
+            self.cursor.execute(query, (patient_id, new_history))
+            self.connection.commit()
+        except Exception as e:
+            print("Error inserting medical record:", e)
+            return False
+        return True
+
+
+    def fetch_appointments(self, patient_id):
+        query = """
+        SELECT appointment_time, appointment_details, status 
+        FROM appointments 
+        WHERE patient_id = %s
+        ORDER BY appointment_time DESC
+        """
+        try:
+            self.cursor.execute(query, (patient_id,))
+            return self.cursor.fetchall()
+        except Exception as e:
+            print("Error fetching appointments:", e)
+            return []
 
 
 class PatientInterface(QWidget):
@@ -113,6 +146,45 @@ class PatientInterface(QWidget):
 
         layout = QVBoxLayout(self)
         layout.addWidget(self.tabWidget)
+
+    def createAppointmentPage(self):
+
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        self.appointment_list = QListWidget()
+        self.appointment_list.itemClicked.connect(self.show_appointment_details)
+
+        self.database2 = Database()
+        appointments = self.database2.fetch_appointments(self.user_id)
+        if not appointments:
+            QMessageBox.critical(self, 'Database Error', 'Failed to fetch appointments.')
+            return widget
+
+        for time, description, status in appointments:
+            if status == "approved":
+                color = "\U0001F7E2"  # Green
+            elif status == "declined":
+                color = "\U0001F534"  # Red
+            else:
+                color = "\U0001F7E1"  # Yellow
+            item = QListWidgetItem(f"{color} Time: {time} - Appointment: {description}")
+            self.appointment_list.addItem(item)
+
+        layout.addWidget(self.appointment_list)
+
+        self.add_appointment_btn = QPushButton('Add New Appointment')
+        self.add_appointment_btn.clicked.connect(self.show_calendar)
+        appointment_btn_layout = QHBoxLayout()
+        appointment_btn_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        appointment_btn_layout.addWidget(self.add_appointment_btn)
+        appointment_btn_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        layout.addLayout(appointment_btn_layout)
+
+        legend_label = QLabel("🟢 Approved \U0001F7E1 Waiting 🔴 Declined")
+        layout.addWidget(legend_label)
+
+        return widget
 
     def createPersonalInfoPage(self):
         self.database2 = Database()
@@ -174,11 +246,6 @@ class PatientInterface(QWidget):
             QMessageBox.warning(self, 'Invalid Input', 'Please enter valid name and age.')
 
 
-    # def update_personal_info(self):
-    #     new_name = self.name_edit.text()
-    #     # Here you can add code to update the name in the database
-    #     QMessageBox.information(self, 'Name Changed', 'Your name has been updated successfully!')
-
     # asi by to melo ukladat do filu projektu
     def add_picture(self):
         file_name, _ = QFileDialog.getOpenFileName(self, "Select Picture", "",
@@ -204,16 +271,13 @@ class PatientInterface(QWidget):
 
         self.medical_history_list = QListWidget()
 
-        # DB shrug
-        medical_events = [
-            ("2023-05-01", "Lorem ipsum dolor sit amet, consectetur adipiscing elit."),
-            ("2023-05-15", "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."),
-            ("2023-06-03", "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."),
-            ("2023-06-21", "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur."),
-            ("2023-07-04", "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.")
-        ]
+        medical_events = self.database2.fetch_medical_history(self.user_id)
+        if not medical_events:
+            QMessageBox.critical(self, 'Database Error', 'Failed to fetch medical history.')
+            return widget
 
-        for date, description in medical_events:
+        for event in medical_events:
+            date, description = event
             item = QListWidgetItem(f"Date: {date} - Event: {description}")
             self.medical_history_list.addItem(item)
 
@@ -226,61 +290,59 @@ class PatientInterface(QWidget):
         history_btn_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
 
         layout.addLayout(history_btn_layout)
+        self.reload_medical_history()
+
+
         self.update_history_btn.clicked.connect(self.update_medical_history)
 
         return widget
 
-    def update_medical_history(self):
-        new_history = self.medical_history_text.toPlainText()
-        result = self.database.fetch_medical_record(self.user_id)
-        if result:
-            self.database.update_medical_record((new_history, self.user_id))
+    def reload_medical_history(self):
+        self.medical_history_list.clear()  # Clear existing items
+
+        medical_events = self.database2.fetch_medical_history(self.user_id)
+        if medical_events:
+            for event in medical_events:
+                date, description = event
+                item = QListWidgetItem(f"Date: {date} - Event: {description}")
+                self.medical_history_list.addItem(item)
         else:
-            self.database.insert_medical_record((new_history, self.user_id))
+            QMessageBox.critical(self, 'Database Error', 'Failed to fetch medical history.')
 
-        QMessageBox.information(self, 'Update Successful', 'Your medical history has been updated!')
 
-    def createAppointmentPage(self):
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
+    def update_medical_history(self):
+        # Creating a dialog for entering new medical history
+        self.history_dialog = QDialog(self)
+        self.history_dialog.setWindowTitle('Update Medical History')
+        layout = QVBoxLayout(self.history_dialog)
 
-        self.appointment_list = QListWidget()
-        self.appointment_list.itemClicked.connect(self.show_appointment_details)
+        # Adding a text edit field to enter new history
+        self.medical_history_text = QTextEdit()
+        self.medical_history_text.setPlaceholderText("Enter new medical history details...")
+        layout.addWidget(self.medical_history_text)
 
-        # DB, date, text, status
-        appointments = [
-            ("2023-05-20 09:00", "Dental check-up", "approved"),
-            ("2023-05-22 14:00", "General physician follow-up", "declined"),
-            ("2023-05-30 16:00", "Orthopedic consultation", "waiting"),
-            ("2023-06-05 10:00", "Cardiology exam", "approved"),
-            ("2023-06-12 13:00", "Nutritionist appointment", "waiting")
-        ]
+        # Adding a button box for submitting or cancelling
+        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        layout.addWidget(button_box)
+        button_box.accepted.connect(self.submit_medical_history)
+        button_box.rejected.connect(self.history_dialog.reject)
 
-        for time, description, status in appointments:
-            if status == "approved":
-                color = "\U0001F7E2"  # Green
-            elif status == "declined":
-                color = "\U0001F534"  # Red
-            else:
-                color = "\U0001F7E1"  # Yellow
-            item = QListWidgetItem(f"{color} Time: {time} - Appointment: {description}")
-            self.appointment_list.addItem(item)
+        self.history_dialog.setLayout(layout)
+        self.history_dialog.exec_()
 
-        layout.addWidget(self.appointment_list)
+    def submit_medical_history(self):
+        self.database2 = Database()
 
-        self.add_appointment_btn = QPushButton('Add New Appointment')
-        self.add_appointment_btn.clicked.connect(self.show_calendar)  # Connect the button to the method
-        appointment_btn_layout = QHBoxLayout()
-        appointment_btn_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        appointment_btn_layout.addWidget(self.add_appointment_btn)
-        appointment_btn_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        new_history = self.medical_history_text.toPlainText()
+        if new_history.strip():
 
-        layout.addLayout(appointment_btn_layout)
+            self.database2.insert_medical_record(self.user_id, new_history)
+            self.reload_medical_history()
 
-        legend_label = QLabel("🟢 Approved \U0001F7E1 Waiting 🔴 Declined")
-        layout.addWidget(legend_label)
-
-        return widget
+            QMessageBox.information(self, 'Update Successful', 'Your medical history has been updated!')
+            self.history_dialog.accept()
+        else:
+            QMessageBox.warning(self, 'Invalid Input', 'Please enter valid medical history details.')
 
 
     def show_appointment_details(self, item):
