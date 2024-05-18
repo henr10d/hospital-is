@@ -113,13 +113,15 @@ class DoctorInterface(QWidget):
         layout.addWidget(self.tabWidget)
 
     def loadAppointments(self):
-        self.appointment_list.clear()  # Clear existing items before loading new ones
-        self.database2 = Database()
+        # self.appointment_list.clear()  # Clear existing items before loading new ones
+        # self.database2 = Database()
 
-        doctor_id = self.database2.get_doctor_id_by_user_id(self.user_id)
-        if not doctor_id:
-            QMessageBox.critical(self, 'Database Error', 'Failed to find associated doctor ID.')
-            return
+        # doctor_id = self.database2.get_doctor_id_by_user_id(self.user_id)
+        # if not doctor_id:
+        #     QMessageBox.critical(self, 'Database Error', 'Failed to find associated doctor ID.')
+        #     return
+
+        # appointments = self.database2.fetch_appointments_for_doctor(doctor_id)
 
         appointments = self.database2.fetch_appointments_for_doctor(doctor_id)
         if not appointments:
