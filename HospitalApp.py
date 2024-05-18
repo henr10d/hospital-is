@@ -19,7 +19,7 @@ class HospitalApp(QtWidgets.QWidget):
         self.database = DatabaseCommunicator(
             "localhost",
             "root",
-            "1234",
+            "filip",
             "HospitalApp"
         )
         self.database.connect()

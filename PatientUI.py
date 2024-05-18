@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import (QWidget, QLineEdit, QPushButton, QLabel, QMessageBo
                              QSizePolicy, QListWidgetItem, QListWidget, QDialogButtonBox)
 
 from PyQt5.QtWidgets import QCalendarWidget, QDialog, QVBoxLayout
-from PyQt5.QtCore import QDate
+from PyQt5.QtCore import QDate, QTimer, Qt
 from hashlib import sha256
 
 from DatabaseComms import DatabaseCommunicator
@@ -21,6 +21,9 @@ class PatientInterface(QWidget):
         self.database = database
         self.username = username
         self.initUI()
+        self.refresh_timer = QTimer(self)
+        self.refresh_timer.timeout.connect(self.refresh_appointments)
+        self.refresh_timer.start(1000)
 
     def initUI(self):
         self.setWindowTitle('Patient Dashboard')
@@ -77,18 +80,7 @@ class PatientInterface(QWidget):
         self.appointment_list = QListWidget()
         self.appointment_list.itemClicked.connect(self.show_appointment_details)
 
-        appointments = self.database.fetch_patient_appointments(self.patient_id)
-
-        if appointments is not None:
-            for time, description, status in appointments:
-                if status == "approved":
-                    color = "\U0001F7E2"  # Green
-                elif status == "declined":
-                    color = "\U0001F534"  # Red
-                else:
-                    color = "\U0001F7E1"  # Yellow
-                item = QListWidgetItem(f"{color} Time: {time} - Appointment: {description}")
-                self.appointment_list.addItem(item)
+        self.refresh_appointments()
 
         layout.addWidget(self.appointment_list)
 
@@ -104,6 +96,26 @@ class PatientInterface(QWidget):
         layout.addWidget(legend_label)
 
         return widget
+    
+    def refresh_appointments(self):
+        appointments = self.database.fetch_patient_appointments(self.patient_id)
+
+        if len(appointments) == len(self.appointment_list):
+            return
+
+        self.appointment_list.clear()
+
+        if appointments is not None:
+            for id, time, description, status in appointments:
+                if status == "approved":
+                    color = "\U0001F7E2"  # Green
+                elif status == "declined":
+                    color = "\U0001F534"  # Red
+                else:
+                    color = "\U0001F7E1"  # Yellow
+                item = QListWidgetItem(f"{color} Time: {time} - Appointment: {description}")
+                item.setData(Qt.UserRole, id)
+                self.appointment_list.addItem(item)
 
     def createPersonalInfoPage(self):
         widget = QWidget()
@@ -279,6 +291,7 @@ class PatientInterface(QWidget):
 
     def cancel_appointment(self, item):
         # hehe
+        self.database.cancel_appointment((item.data(Qt.UserRole), ))
         self.appointment_list.takeItem(self.appointment_list.row(item))
         QMessageBox.information(self, 'Appointment Cancelled', 'The appointment has been successfully cancelled!')
 
