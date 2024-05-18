@@ -123,8 +123,8 @@ class DoctorInterface(QWidget):
 
         # appointments = self.database2.fetch_appointments_for_doctor(doctor_id)
 
-        appointments = self.database2.fetch_appointments_for_doctor(doctor_id)
-        if not appointments:
+        appointments = self.database.fetch_doctor_appointments(self.doctor_id)
+        if appointments is None:
             QMessageBox.critical(self, 'Database Error', 'Failed to fetch appointments.')
             return
 
