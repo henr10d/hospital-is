@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import (QWidget, QLineEdit, QPushButton, QLabel, QMessageBo
                              QSizePolicy, QListWidgetItem, QListWidget, QDialogButtonBox)
 
 from PyQt5.QtWidgets import QCalendarWidget, QDialog, QVBoxLayout
-from PyQt5.QtCore import QDate, QTimer, Qt
+from PyQt5.QtCore import QDate, Qt
 from hashlib import sha256
 
 from DatabaseComms import DatabaseCommunicator
@@ -21,9 +21,6 @@ class PatientInterface(QWidget):
         self.database = database
         self.username = username
         self.initUI()
-        self.refresh_timer = QTimer(self)
-        self.refresh_timer.timeout.connect(self.refresh_appointments)
-        self.refresh_timer.start(1000)
 
     def initUI(self):
         self.setWindowTitle('Patient Dashboard')
@@ -86,9 +83,13 @@ class PatientInterface(QWidget):
 
         self.add_appointment_btn = QPushButton('Add New Appointment')
         self.add_appointment_btn.clicked.connect(self.show_calendar)
+        self.refresh_appointment_btn = QPushButton('Refresh Appointments')
+        self.refresh_appointment_btn.clicked.connect(self.refresh_appointments)
+        
         appointment_btn_layout = QHBoxLayout()
         appointment_btn_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
         appointment_btn_layout.addWidget(self.add_appointment_btn)
+        appointment_btn_layout.addWidget(self.refresh_appointment_btn)
         appointment_btn_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
         layout.addLayout(appointment_btn_layout)
 
@@ -96,12 +97,9 @@ class PatientInterface(QWidget):
         layout.addWidget(legend_label)
 
         return widget
-    
+
     def refresh_appointments(self):
         appointments = self.database.fetch_patient_appointments(self.patient_id)
-
-        if len(appointments) == len(self.appointment_list):
-            return
 
         self.appointment_list.clear()
 
@@ -294,6 +292,7 @@ class PatientInterface(QWidget):
         self.database.cancel_appointment((item.data(Qt.UserRole), ))
         self.appointment_list.takeItem(self.appointment_list.row(item))
         QMessageBox.information(self, 'Appointment Cancelled', 'The appointment has been successfully cancelled!')
+        self.refresh_appointments()
 
     def show_calendar(self):
         self.calendar_dialog = QDialog(self)
@@ -333,7 +332,7 @@ class PatientInterface(QWidget):
         selected_time = f"{selected_hour}:{selected_minute}"
         selected_datetime = selected_date + " " + selected_time + ":00"
         full_details = f"{self.appointment_info.text()} on {selected_date} at {selected_time}"
-        print(full_details)
         self.database.add_appointment((self.patient_id, self.doctor_id, full_details, selected_datetime, "waiting"))
         QMessageBox.information(self, 'Appointment Added', 'Your appointment has been added successfully!')
         self.calendar_dialog.close()
+        self.refresh_appointments()
