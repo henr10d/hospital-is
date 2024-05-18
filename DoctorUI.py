@@ -57,9 +57,13 @@ class Database:
 
 
 class DoctorInterface(QWidget):
-    def __init__(self, user_id, database):
-        self.user_id = user_id
+    def __init__(self, doctor, database, username):
+        self.doctor_id = doctor[0]
+        self.patient_name = doctor[2]
+        self.patient_birth = doctor[3]
+        self.insurance = doctor[4]
         self.database = database
+        self.username = username
         super().__init__()
         self.setWindowTitle('Doctor Dashboard')
         self.setGeometry(400, 400, 1280, 800)
