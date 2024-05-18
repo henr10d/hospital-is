@@ -89,7 +89,7 @@ class DatabaseCommunicator:
         :param params: tuple with username and password
         :return: user_id or None if there is no such user_id in the database
         """
-        statement = "SELECT id FROM users WHERE name = %s AND password = %s AND role = %s"
+        statement = "SELECT id FROM users WHERE username = %s AND password = %s AND role = %s"
         result = self.database_query(statement, params, False)
         if result:
             return result[0][0]
