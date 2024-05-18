@@ -12,10 +12,11 @@ from datetime import datetime
 
 from DatabaseComms import DatabaseCommunicator
 
+import HospitalApp
 
 class PatientInterface(QWidget):
 
-    def __init__(self, patient, database: DatabaseCommunicator, username):
+    def __init__(self, patient, database: DatabaseCommunicator, username, hospital):
         super().__init__()
         self.patient_id = patient[0]
         self.doctor_id = patient[1]
@@ -24,6 +25,7 @@ class PatientInterface(QWidget):
         self.insurance = patient[5]
         self.database = database
         self.username = username
+        self.hospital = hospital
         self.initUI()
 
     def initUI(self):
@@ -72,7 +74,14 @@ class PatientInterface(QWidget):
         self.tabWidget.addTab(self.create_medicine_page(), "Prescriptions")
 
         layout = QVBoxLayout(self)
+        self.leave_button = QPushButton('To login', self)
+        self.leave_button.clicked.connect(self.leave)
         layout.addWidget(self.tabWidget)
+        layout.addWidget(self.leave_button)
+
+    def leave(self):
+        self.hospital.show()
+        self.close()
 
     def createAppointmentPage(self):
         widget = QWidget()

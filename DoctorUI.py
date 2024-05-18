@@ -8,13 +8,14 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QListWidget, QPushButton, QMes
 
 
 class DoctorInterface(QWidget):
-    def __init__(self, doctor, database, username):
+    def __init__(self, doctor, database, username, hospital):
         self.doctor_id = doctor[0]
         self.doctor_name = doctor[2]
         self.doctor_birth = doctor[3]
         self.insurance = doctor[4]
         self.database = database
         self.username = username
+        self.hospital = hospital
         super().__init__()
         self.setWindowTitle('Doctor Dashboard')
         self.setGeometry(400, 400, 1280, 800)
@@ -60,9 +61,15 @@ class DoctorInterface(QWidget):
         self.tabWidget.addTab(self.createPersonalInfoPage(), "Personal Info")
         self.tabWidget.addTab(self.createAcceptedPatientsPage(), "Accepted patients")
 
-
         layout = QVBoxLayout(self)
+        self.leave_button = QPushButton('To login', self)
+        self.leave_button.clicked.connect(self.leave)
         layout.addWidget(self.tabWidget)
+        layout.addWidget(self.leave_button)
+
+    def leave(self):
+        self.hospital.show()
+        self.close()
 
     def loadAppointments(self):
         self.appointment_list.clear()  # Clear existing items before loading new ones

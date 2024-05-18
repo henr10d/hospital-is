@@ -164,9 +164,9 @@ class HospitalApp(QtWidgets.QWidget):
     def open_role_interface(self, user_id, username):
         self.hide()
         if self.role_input.currentText().lower() == "doctor":
-            self.interface = DoctorInterface(user_id, self.database, username)
+            self.interface = DoctorInterface(user_id, self.database, username, self)
         elif self.role_input.currentText().lower() == "patient":
-            self.interface = PatientInterface(user_id, self.database, username)
+            self.interface = PatientInterface(user_id, self.database, username, self)
         self.interface.show()
 
     def login(self):
