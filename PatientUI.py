@@ -11,92 +11,14 @@ from PyQt5.QtCore import QDate, QBuffer, QByteArray
 # import mysql.connector
 from DatabaseComms import DatabaseCommunicator
 
-class Database:
-    def __init__(self):
-        self.connection = mysql.connector.connect(
-            host='localhost',
-            user='root',
-            password='filip',
-            database='HospitalApp'
-        )
-        self.cursor = self.connection.cursor()
-
-    def update_picture(self, user_id, image_path):
-        query = "UPDATE users SET image_path = %s WHERE id = %s"
-        self.cursor.execute(query, (image_path, user_id))
-        self.connection.commit()
-
-    def fetch_picture(self, user_id):
-        query = "SELECT image_path FROM users WHERE id = %s"
-        self.cursor.execute(query, (user_id,))
-        result = self.cursor.fetchone()
-        if result:
-            return result[0]
-        return None
-
-    def update_personal_info(self, user_id, name, age):
-        query = "UPDATE users SET name = %s, age = %s WHERE id = %s"
-        try:
-            self.cursor.execute(query, (name, age, user_id))
-            self.connection.commit()
-            return True
-        except Exception as e:
-            print("Error updating personal info:", e)
-            return False
-
-    def fetch_personal_info(self, user_id):
-        query = "SELECT name, age FROM users WHERE id = %s"
-        try:
-            self.cursor.execute(query, (user_id,))
-            result = self.cursor.fetchone()
-            if result:
-                return result
-            else:
-                return None, None
-        except Exception as e:
-            print("Error fetching personal info:", e)
-            return None, None
-
-    def fetch_medical_history(self, patient_id):
-        try:
-            query = "SELECT appointment_time, details FROM medical_history WHERE patient_id = %s ORDER BY appointment_time DESC"
-            self.cursor.execute(query, (patient_id,))
-            return self.cursor.fetchall()
-        except Exception as e:
-            print(f"Error fetching medical history: {e}")
-            return None
-
-    def insert_medical_record(self, patient_id, new_history):
-        try:
-            query = "INSERT INTO medical_history (patient_id, details, appointment_time) VALUES (%s, %s, NOW())"
-            self.cursor.execute(query, (patient_id, new_history))
-            self.connection.commit()
-        except Exception as e:
-            print("Error inserting medical record:", e)
-            return False
-        return True
-
-
-    def fetch_appointments(self, patient_id):
-        query = """
-        SELECT appointment_time, appointment_details, status 
-        FROM appointments 
-        WHERE patient_id = %s
-        ORDER BY appointment_time DESC
-        """
-        try:
-            self.cursor.execute(query, (patient_id,))
-            return self.cursor.fetchall()
-        except Exception as e:
-            print("Error fetching appointments:", e)
-            return []
-
-
 class PatientInterface(QWidget):
 
-    def __init__(self, user_id, database: DatabaseCommunicator):
+    def __init__(self, patient, database: DatabaseCommunicator):
         super().__init__()
-        self.user_id = user_id
+        self.patient_id = patient[0]
+        self.patient_name = patient[3]
+        self.patient_birth = patient[4]
+        self.insurance = patient[5]
         self.database = database
         self.initUI()
 
@@ -155,9 +77,10 @@ class PatientInterface(QWidget):
         self.appointment_list = QListWidget()
         self.appointment_list.itemClicked.connect(self.show_appointment_details)
 
-        self.database2 = Database()
-        appointments = self.database2.fetch_appointments(self.user_id)
-        if not appointments:
+        # self.database2 = Database()
+        # appointments = self.database2.fetch_appointments(self.patient_id)
+        appointments = self.database.fetch_patient_appointments(self.patient_id)
+        if appointments is None:
             QMessageBox.critical(self, 'Database Error', 'Failed to fetch appointments.')
             return widget
 
@@ -187,21 +110,17 @@ class PatientInterface(QWidget):
         return widget
 
     def createPersonalInfoPage(self):
-        self.database2 = Database()
+        # self.database2 = Database()
         widget = QWidget()
         formLayout = QFormLayout()
 
-        name, age = self.database2.fetch_personal_info(self.user_id)
-
-        self.name_edit = QLineEdit(name if name is not None else '')
+        self.name_edit = QLineEdit(self.patient_name if self.patient_name is not None else '')
         # datum prepocet
-        self.age_edit = QLineEdit(str(age) if age is not None else '')
+        self.age_edit = QLineEdit(str(self.patient_birth) if self.patient_birth is not None else '')
 
         self.update_name_btn = QPushButton('Update personal info')
         self.update_name_btn.clicked.connect(self.update_personal_info)
         self.load_picture_btn = QPushButton('Add/Change Picture')
-
-
 
         # Creating a horizontal layout to center buttons
         update_btn_layout = QHBoxLayout()
@@ -230,14 +149,20 @@ class PatientInterface(QWidget):
         return widget
 
     def update_personal_info(self):
-        self.database2 = Database()
-
+        # self.database2 = Database()
 
         new_name = self.name_edit.text()
         new_age = self.age_edit.text()
+        if new_name is None or new_name == '':
+            new_name = self.patient_name
+        # if new_age is None or new_name == '':
+        #     new_age = self.patient_birth
+        self.patient_name = new_name
+        # self.patient_birth = new_age
         if new_name and new_age:  # Simple validation
             try:
-                self.database2.update_personal_info(self.user_id, new_name, new_age)
+                # self.database2.update_personal_info(self.user_id, new_name, new_age)
+                self.database.patient_update_personal_info((self.patient_name, self.patient_birth, self.patient_id))
                 QMessageBox.information(self, 'Update Successful',
                                         'Your personal information has been updated successfully!')
             except Exception as e:
@@ -253,10 +178,9 @@ class PatientInterface(QWidget):
         if file_name:
             pixmap = QPixmap(file_name)
             print(file_name)
-            self.database2 = Database()
+            # self.database2 = Database()
 
-
-            self.database2.update_picture(self.user_id, file_name)
+            self.database.update_patient_picture(self.patient_id, file_name)
             QMessageBox.information(self, 'Picture Updated', 'Your picture has been updated successfully!')
 
             #¯\_(ツ)_/¯
@@ -271,12 +195,13 @@ class PatientInterface(QWidget):
 
         self.medical_history_list = QListWidget()
 
-        medical_events = self.database2.fetch_medical_history(self.user_id)
-        if not medical_events:
+        # medical_events = self.database2.fetch_medical_history(self.user_id)
+        medical_records = self.database.fetch_patient_medical_records(self.patient_id)
+        if medical_records is None:
             QMessageBox.critical(self, 'Database Error', 'Failed to fetch medical history.')
             return widget
 
-        for event in medical_events:
+        for event in medical_records:
             date, description = event
             item = QListWidgetItem(f"Date: {date} - Event: {description}")
             self.medical_history_list.addItem(item)
@@ -292,7 +217,6 @@ class PatientInterface(QWidget):
         layout.addLayout(history_btn_layout)
         self.reload_medical_history()
 
-
         self.update_history_btn.clicked.connect(self.update_medical_history)
 
         return widget
@@ -300,15 +224,14 @@ class PatientInterface(QWidget):
     def reload_medical_history(self):
         self.medical_history_list.clear()  # Clear existing items
 
-        medical_events = self.database2.fetch_medical_history(self.user_id)
-        if medical_events:
-            for event in medical_events:
-                date, description = event
+        # medical_records = self.database2.fetch_medical_history(self.user_id)
+        medical_records = self.database.fetch_patient_medical_records(self.patient_id)
+        if medical_records is None:
+            QMessageBox.critical(self, 'Database Error', 'Failed to fetch medical history.')
+        else:
+            for date, description in medical_records:
                 item = QListWidgetItem(f"Date: {date} - Event: {description}")
                 self.medical_history_list.addItem(item)
-        else:
-            QMessageBox.critical(self, 'Database Error', 'Failed to fetch medical history.')
-
 
     def update_medical_history(self):
         # Creating a dialog for entering new medical history
@@ -331,11 +254,10 @@ class PatientInterface(QWidget):
         self.history_dialog.exec_()
 
     def submit_medical_history(self):
-        self.database2 = Database()
+        # self.database2 = Database()
 
         new_history = self.medical_history_text.toPlainText()
         if new_history.strip():
-
             self.database2.insert_medical_record(self.user_id, new_history)
             self.reload_medical_history()
 

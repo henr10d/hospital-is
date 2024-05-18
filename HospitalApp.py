@@ -171,11 +171,9 @@ class HospitalApp(QtWidgets.QWidget):
 
     def login(self):
         name = self.username_input.text()
-        # password = self.password_input.text()
         role = self.role_input.currentText().lower()
         password = sha256(self.password_input.text().encode()).hexdigest()  # Hash the password
-        print((name, password, role))
-        result = self.database.get_user_id((name, password, role))
+        result = self.database.login((name, password, role))
         if result:
             QMessageBox.information(self, 'Login Success', f'Welcome {role} {name}!')
             self.open_role_interface(result)
