@@ -1,4 +1,5 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
+from datetime import datetime
 
 # import MySQLdb
 from hashlib import sha256
@@ -18,7 +19,7 @@ class HospitalApp(QtWidgets.QWidget):
         self.database = DatabaseCommunicator(
             "localhost",
             "root",
-            "filip",
+            "1234",
             "HospitalApp"
         )
         self.database.connect()
@@ -170,8 +171,10 @@ class HospitalApp(QtWidgets.QWidget):
 
     def login(self):
         name = self.username_input.text()
-        password = self.password_input.text()
+        # password = self.password_input.text()
         role = self.role_input.currentText().lower()
+        password = sha256(self.password_input.text().encode()).hexdigest()  # Hash the password
+        print((name, password, role))
         result = self.database.get_user_id((name, password, role))
         if result:
             QMessageBox.information(self, 'Login Success', f'Welcome {role} {name}!')
@@ -181,6 +184,12 @@ class HospitalApp(QtWidgets.QWidget):
 
     def register(self):
         name = self.name_input.text()
+        # age = int(self.age_input.currentText())
+        now = datetime.now()
+        birth = now.strftime("%Y-%m-%d %H:%M:%S")
+        username = self.new_username_input.text()
         password = sha256(self.new_password_input.text().encode()).hexdigest()  # Hash the password
         role = self.new_role_input.currentText().lower()
-        self.database.add_user_to_database((name, password, role))
+        insurance = "Union"
+        self.database.add_user_to_database(name, birth, username, password, role, insurance)
+        QMessageBox.information(self, 'Registration Successful', f'{name} was successfully added to system!')

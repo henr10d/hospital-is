@@ -128,7 +128,7 @@ class DatabaseCommunicator:
         elif params[2] == "patient":
             return self.get_patient((user_id, ))
 
-    def add_user_to_database(self, username, password, role, name, birth, insurance):
+    def add_user_to_database(self, name, birth, username, password, role, insurance):
         """
         Adds new user to the database
         :param username: username of the new user as string
