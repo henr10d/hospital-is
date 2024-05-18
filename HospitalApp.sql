@@ -47,3 +47,11 @@ CREATE TABLE appointments (
     FOREIGN KEY (patient_id) REFERENCES patients(patient_id),
     FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id)
 );
+
+CREATE TABLE drugs (
+    name TEXT PRIMARY KEY,
+    patient_id INT,
+    doctor_id INT,
+    FOREIGN KEY (patient_id) REFERENCES patients(patient_id),
+    FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id)
+);

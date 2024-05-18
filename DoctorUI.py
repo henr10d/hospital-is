@@ -1,6 +1,7 @@
 import mysql
 # from PyQt5 import Qt
 from PyQt5.QtCore import Qt
+from hashlib import sha256
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QListWidget, QPushButton, QMessageBox, QTabWidget, QFormLayout, \
     QLineEdit, QLabel, QHBoxLayout, QSpacerItem, QSizePolicy, QListWidgetItem
@@ -11,7 +12,7 @@ class Database:
         self.connection = mysql.connector.connect(
             host='localhost',
             user='root',
-            password='filip',
+            password='1234',
             database='HospitalApp'
         )
         self.cursor = self.connection.cursor()
@@ -54,13 +55,11 @@ class Database:
         except Exception as e:
             print("Error updating appointment status:", e)
 
-
-
 class DoctorInterface(QWidget):
     def __init__(self, doctor, database, username):
         self.doctor_id = doctor[0]
-        self.patient_name = doctor[2]
-        self.patient_birth = doctor[3]
+        self.doctor_name = doctor[2]
+        self.doctor_birth = doctor[3]
         self.insurance = doctor[4]
         self.database = database
         self.username = username
@@ -164,7 +163,7 @@ class DoctorInterface(QWidget):
                                         f"Do you want to change the appointment status to {'Approved' if new_status == 'approved' else 'Declined'}?",
                                         QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if response == QMessageBox.Yes:
-            self.database.update_appointment_status(appointment_id, new_status)
+            self.database.update_appointment_status((new_status, appointment_id))
             QMessageBox.information(self, 'Status Updated',
                                     f'Appointment status has been changed to {"Approved" if new_status == "approved" else "Declined"}.')
             # Refresh the list or update the item directly here to show new status
@@ -172,12 +171,15 @@ class DoctorInterface(QWidget):
 
     def createPersonalInfoPage(self):
         widget = QWidget()
-        formLayout = QFormLayout()
+        layout = QFormLayout()
 
-        self.name_edit = QLineEdit()
-        self.age_edit = QLineEdit()
+        nameLabel = QLabel(self.doctor_name if self.doctor_name is not None else '')
+        ageLabel = QLabel(self.doctor_birth.strftime("%Y-%m-%d") if self.doctor_birth is not None else '')
+        self.username_edit = QLineEdit(self.username if self.username is not None else '')
+        self.password_edit = QLineEdit('')
 
         self.update_name_btn = QPushButton('Update personal info')
+        self.update_name_btn.clicked.connect(self.update_personal_info)
         self.load_picture_btn = QPushButton('Add/Change Picture')
 
         # Creating a horizontal layout to center buttons
@@ -197,18 +199,36 @@ class DoctorInterface(QWidget):
         #     pixmap = QPixmap(current_picture_path)
         #     self.picture_label.setPixmap(pixmap.scaled(100, 100, Qt.KeepAspectRatio))
 
-        formLayout.addRow("Name:", self.name_edit)
-        formLayout.addRow("Age:", self.age_edit)
-        formLayout.addRow(update_btn_layout)
+        layout.addRow("Name:", nameLabel)
+        layout.addRow("Age:", ageLabel)
+        layout.addRow("Username:", self.username_edit)
+        layout.addRow("New password:", self.password_edit)
+        layout.addRow(update_btn_layout)
+        layout.addRow(update_btn_layout)
         # formLayout.addRow(self.picture_label)
-        formLayout.addRow(picture_btn_layout)
+        layout.addRow(picture_btn_layout)
 
-        widget.setLayout(formLayout)
+        widget.setLayout(layout)
         return widget
 
     # dodelat
     def update_personal_info(self):
-        pass
+        new_username = self.username_edit.text()
+        new_password = self.password_edit.text()
+        if new_username is None or new_username == '' or new_password is None or new_password == '':
+            QMessageBox.warning(self, 'Invalid Input', 'Please enter valid non empty username and password.')
+            return
+        self.username = new_username
+        password = sha256(new_password.encode()).hexdigest()
+
+        try:
+            self.database.update_login_credentials((self.username, password, self.doctor_id))
+            QMessageBox.information(self, 'Update Successful',
+                                    'Your personal information has been updated successfully!')
+        except Exception as e:
+            QMessageBox.critical(self, 'Update Failed', 'Failed to update personal information.\n' + str(e))
+        # else:
+        #     QMessageBox.warning(self, 'Invalid Input', 'Please enter valid name and age.')
 
     # dodelat image picker
     def add_picture(self):
@@ -221,7 +241,7 @@ class DoctorInterface(QWidget):
         # rewrite to take from db
         # self.patients_list.addItem("John Doe, Flu")
         # self.patients_list.addItem("Jane Smith, Cold")
-        self.loadPatients();
+        self.loadPatients()
         self.patients_list.itemClicked.connect(self.patientClicked)
         layout.addWidget(self.patients_list)
 
@@ -260,35 +280,6 @@ class DoctorInterface(QWidget):
     # patent picker
     def addPatient(self):
         print("Add patient functionality goes here.")
-
-    def appointmentClicked(self, item):
-        appointment_id, current_status = item.data(Qt.UserRole)
-
-        msg_box = QMessageBox(self)
-        msg_box.setWindowTitle("Change Appointment Status")
-        msg_box.setText("Choose the new status for this appointment:")
-        msg_box.addButton('Approve', QMessageBox.AcceptRole)
-        msg_box.addButton('Decline', QMessageBox.RejectRole)
-        msg_box.addButton(QMessageBox.Cancel)
-
-        result = msg_box.exec_()
-
-        if result == QMessageBox.AcceptRole:
-            new_status = 'approved'
-        elif result == QMessageBox.RejectRole:
-            new_status = 'declined'
-        else:
-            return  # Do nothing if Cancel is clicked
-
-        # Update the appointment status in the database
-        self.database2 = Database()
-
-        self.database2.update_appointment_status(appointment_id, new_status)
-
-        QMessageBox.information(self, 'Status Updated',
-                                f'Appointment status has been changed to {"Approved" if new_status == "approved" else "Declined"}.')
-        self.loadAppointments()
-        # add page refres
 
     def addAppointment(self):
         print("Add appointment functionality goes here.")

@@ -80,7 +80,7 @@ class PatientInterface(QWidget):
         appointments = self.database.fetch_patient_appointments(self.patient_id)
 
         if appointments is not None:
-            for time, description, status in appointments:
+            for _, time, description, status in appointments:
                 if status == "approved":
                     color = "\U0001F7E2"  # Green
                 elif status == "declined":

@@ -207,7 +207,7 @@ class DatabaseCommunicator:
         :return: the medical history of the patient or None if the user has
         no medical history
         """
-        statement = ("SELECT appointment_time, details, status "
+        statement = ("SELECT id, appointment_time, details, status "
                      "FROM appointments "
                      "WHERE patient_id = %s "
                      "ORDER BY appointment_time DESC")
@@ -221,7 +221,7 @@ class DatabaseCommunicator:
        :return: the medical history of the patient or None if the user has
        no medical history
        """
-        statement = ("SELECT patient_id, appointment_time, details, status "
+        statement = ("SELECT id, appointment_time, details, status "
                      "FROM appointments "
                      "WHERE doctor_id = %s "
                      "ORDER BY appointment_time DESC")
@@ -236,6 +236,7 @@ class DatabaseCommunicator:
        """
         statement = "UPDATE appointments SET status = %s WHERE id = %s"
         self.database_query(statement, params, True)
+
     def update_personal_info(self, params):
         """
         Method to update the personal information of a patient
@@ -286,5 +287,7 @@ class DatabaseCommunicator:
 
     def add_doctor_to_patient(self, patient_id, doctor_id):
         statement = "UPDATE patients SET doctor_id = %s WHERE patient_id = %s"
-        result = self.database_query(statement, (doctor_id, patient_id), True)
-        return result
+        self.database_query(statement, (doctor_id, patient_id), True)
+        statement = "UPDATE appointments SET doctor_id = %s WHERE patient_id = %s"
+        self.database_query(statement, (doctor_id, patient_id), True)
+
